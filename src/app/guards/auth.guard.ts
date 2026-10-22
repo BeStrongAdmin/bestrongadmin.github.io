@@ -6,10 +6,11 @@ export const adminGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  // Esperar a que el estado de auth cargue
-  while (auth.isLoading()) {
-    await new Promise(r => setTimeout(r, 50));
-  }
+  // Espera segura a que el estado de auth de Firebase inicialice (máximo 2.5s)
+  await Promise.race([
+    auth.authReadyPromise,
+    new Promise(resolve => setTimeout(resolve, 2500))
+  ]);
 
   const user = auth.currentUser();
   if (user && user.isAdmin) {
@@ -23,9 +24,10 @@ export const superAdminGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  while (auth.isLoading()) {
-    await new Promise(r => setTimeout(r, 50));
-  }
+  await Promise.race([
+    auth.authReadyPromise,
+    new Promise(resolve => setTimeout(resolve, 2500))
+  ]);
 
   const user = auth.currentUser();
   if (user && user.isSuperAdmin) {

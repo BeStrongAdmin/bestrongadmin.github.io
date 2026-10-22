@@ -13,146 +13,145 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
   template: `
     <app-navbar></app-navbar>
 
-    <div class="container-fluid px-3 px-md-4 py-4">
+    <div class="dashboard-page min-vh-100 px-3 px-md-5 py-4">
       <!-- Header -->
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
-          <h1 class="h3 fw-bold mb-1 text-light">Dashboard de Control</h1>
-          <p class="text-secondary mb-0">Bienvenido, {{ auth.currentUser()?.displayName }}. Vista general del sistema y métricas.</p>
+          <h1 class="h4 fw-bold mb-1 text-light tracking-tight">Panel de Control</h1>
+          <p class="text-secondary small mb-0">Bienvenido, {{ auth.currentUser()?.displayName }}. Vista del sistema y analíticas.</p>
         </div>
         <div class="d-flex gap-2">
-          <a routerLink="/generator" class="btn btn-primary d-flex align-items-center gap-2">
+          <a routerLink="/generator" class="btn btn-light btn-sm fw-semibold d-flex align-items-center gap-2 px-3 py-2 rounded-3">
             <i class="bi bi-plus-lg"></i> Nueva Rutina
           </a>
-          <a *ngIf="auth.currentUser()?.isSuperAdmin" routerLink="/admin-management" class="btn btn-outline-warning d-flex align-items-center gap-2">
-            <i class="bi bi-person-gear"></i> Gestionar Admins
+          <a *ngIf="auth.currentUser()?.isSuperAdmin" routerLink="/admin-management" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-3">
+            <i class="bi bi-people"></i> Admins
           </a>
         </div>
       </div>
 
-      <!-- Loading Spinner -->
+      <!-- Loading State -->
       <div *ngIf="loading" class="text-center py-5">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Cargando métricas...</span>
-        </div>
+        <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+        <div class="small text-secondary mt-2">Cargando métricas del sistema...</div>
       </div>
 
       <div *ngIf="!loading">
-        <!-- KPI Cards -->
+        <!-- Minimalist KPI Cards (Black tones & Icons) -->
         <div class="row g-3 mb-4">
           <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card h-100 border border-dark p-3" style="background-color: #141219;">
+            <div class="card h-100 p-3 rounded-4 border-0 panel-card">
               <div class="d-flex justify-content-between align-items-start">
                 <div>
-                  <div class="text-secondary small fw-medium mb-1">Rutinas Generadas</div>
-                  <div class="h2 fw-bold text-light mb-0">{{ totalRoutines }}</div>
+                  <div class="text-secondary small fw-medium mb-1">Rutinas en Servidor</div>
+                  <div class="h3 fw-bold text-light mb-0">{{ totalRoutines }}</div>
                 </div>
-                <div class="p-2 rounded bg-primary bg-opacity-25 text-primary">
-                  <i class="bi bi-card-checklist fs-4"></i>
+                <div class="icon-box rounded-3 text-secondary">
+                  <i class="bi bi-collection fs-5"></i>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card h-100 border border-dark p-3" style="background-color: #141219;">
+            <div class="card h-100 p-3 rounded-4 border-0 panel-card">
               <div class="d-flex justify-content-between align-items-start">
                 <div>
-                  <div class="text-secondary small fw-medium mb-1">Usuarios Entrenados</div>
-                  <div class="h2 fw-bold text-success mb-0">{{ totalTrainees }}</div>
+                  <div class="text-secondary small fw-medium mb-1">Atletas Entrenando</div>
+                  <div class="h3 fw-bold text-light mb-0">{{ totalTrainees }}</div>
                 </div>
-                <div class="p-2 rounded bg-success bg-opacity-25 text-success">
-                  <i class="bi bi-people-fill fs-4"></i>
+                <div class="icon-box rounded-3 text-secondary">
+                  <i class="bi bi-person-check fs-5"></i>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card h-100 border border-dark p-3" style="background-color: #141219;">
-              <div class="d-flex justify-content-between align-items-start">
-                <div>
-                  <div class="text-secondary small fw-medium mb-1">Admins Registrados</div>
-                  <div class="h2 fw-bold text-warning mb-0">{{ adminsList.length + 1 }}</div>
-                </div>
-                <div class="p-2 rounded bg-warning bg-opacity-25 text-warning">
-                  <i class="bi bi-shield-check fs-4"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card h-100 border border-dark p-3" style="background-color: #141219;">
+            <div class="card h-100 p-3 rounded-4 border-0 panel-card">
               <div class="d-flex justify-content-between align-items-start">
                 <div>
                   <div class="text-secondary small fw-medium mb-1">Mis Rutinas Creadas</div>
-                  <div class="h2 fw-bold text-info mb-0">{{ myRoutinesCount }}</div>
+                  <div class="h3 fw-bold text-light mb-0">{{ myRoutinesCount }}</div>
                 </div>
-                <div class="p-2 rounded bg-info bg-opacity-25 text-info">
-                  <i class="bi bi-person-badge fs-4"></i>
+                <div class="icon-box rounded-3 text-secondary">
+                  <i class="bi bi-journal-code fs-5"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card h-100 p-3 rounded-4 border-0 panel-card">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="text-secondary small fw-medium mb-1">Entrenadores Activos</div>
+                  <div class="h3 fw-bold text-light mb-0">{{ adminsList.length + 1 }}</div>
+                </div>
+                <div class="icon-box rounded-3 text-secondary">
+                  <i class="bi bi-shield-check fs-5"></i>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Superadmin Section: Rendimiento de Administradores -->
-        <div *ngIf="auth.currentUser()?.isSuperAdmin" class="card border border-dark mb-4" style="background-color: #141219;">
-          <div class="card-header border-bottom border-dark d-flex justify-content-between align-items-center py-3">
+        <!-- Superadmin Table: Rendimiento de Entrenadores -->
+        <div *ngIf="auth.currentUser()?.isSuperAdmin" class="card border-0 rounded-4 panel-card mb-4 overflow-hidden">
+          <div class="card-header border-0 bg-transparent px-4 py-3 d-flex justify-content-between align-items-center">
             <div>
-              <h5 class="card-title fw-bold text-light mb-0">
-                <i class="bi bi-bar-chart-fill text-warning me-2"></i>Rendimiento de Administradores
-              </h5>
-              <small class="text-secondary">Monitoreo de rutinas creadas y usuarios atendidos por cada entrenador</small>
+              <h6 class="fw-bold text-light mb-0">
+                <i class="bi bi-bar-chart me-2 text-secondary"></i>Rendimiento de Entrenadores
+              </h6>
+              <small class="text-secondary">Monitoreo de rutinas generadas y canjes por cada entrenador</small>
             </div>
           </div>
           <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-dark">
+            <table class="table table-hover align-middle mb-0 custom-table">
+              <thead>
                 <tr>
-                  <th>Administrador</th>
+                  <th class="ps-4">Entrenador</th>
                   <th>Rol</th>
                   <th>Estado</th>
                   <th class="text-center">Rutinas Creadas</th>
-                  <th class="text-center">Usuarios Entrenando</th>
-                  <th class="text-end">Fecha Alta</th>
+                  <th class="text-center">Atletas Asignados</th>
+                  <th class="text-end pe-4">Alta</th>
                 </tr>
               </thead>
               <tbody>
                 <!-- Superadmin row -->
                 <tr>
-                  <td>
+                  <td class="ps-4">
                     <div class="fw-semibold text-light">{{ auth.currentUser()?.displayName }} (Tú)</div>
                     <div class="small text-secondary">{{ auth.currentUser()?.email }}</div>
                   </td>
-                  <td><span class="badge bg-warning text-dark">Super Admin</span></td>
-                  <td><span class="badge bg-success">Activo</span></td>
-                  <td class="text-center fw-bold">{{ superAdminRoutinesCount }}</td>
-                  <td class="text-center fw-bold text-success">{{ superAdminTraineesCount }}</td>
-                  <td class="text-end small text-secondary">Fundador</td>
+                  <td><span class="badge badge-subtle">Superadmin</span></td>
+                  <td><span class="badge badge-active">Activo</span></td>
+                  <td class="text-center fw-bold text-light">{{ superAdminRoutinesCount }}</td>
+                  <td class="text-center fw-bold text-light">{{ superAdminTraineesCount }}</td>
+                  <td class="text-end pe-4 small text-secondary">Fundador</td>
                 </tr>
 
                 <!-- Additional admins -->
                 <tr *ngFor="let adm of adminsList">
-                  <td>
+                  <td class="ps-4">
                     <div class="fw-semibold text-light">{{ adm.name }}</div>
                     <div class="small text-secondary">{{ adm.email }}</div>
                   </td>
-                  <td><span class="badge bg-primary">Admin</span></td>
+                  <td><span class="badge badge-subtle">Admin</span></td>
                   <td>
-                    <span class="badge" [ngClass]="adm.active ? 'bg-success' : 'bg-danger'">
-                      {{ adm.active ? 'Activo' : 'Inactivo' }}
+                    <span class="badge" [ngClass]="adm.active ? 'badge-active' : 'badge-inactive'">
+                      {{ adm.active ? 'Activo' : 'Suspendido' }}
                     </span>
                   </td>
-                  <td class="text-center fw-bold">{{ adm.routinesCreatedCount || 0 }}</td>
-                  <td class="text-center fw-bold text-success">{{ adm.traineesCount || 0 }}</td>
-                  <td class="text-end small text-secondary">{{ adm.createdAt | date:'shortDate' }}</td>
+                  <td class="text-center fw-bold text-light">{{ adm.routinesCreatedCount || 0 }}</td>
+                  <td class="text-center fw-bold text-light">{{ adm.traineesCount || 0 }}</td>
+                  <td class="text-end pe-4 small text-secondary">{{ adm.createdAt | date:'shortDate' }}</td>
                 </tr>
 
                 <tr *ngIf="adminsList.length === 0">
-                  <td colspan="6" class="text-center py-3 text-secondary">
-                    No has agregado administradores secundarios todavía. Puedes agregarlos desde la sección "Administradores".
+                  <td colspan="6" class="text-center py-4 text-secondary small">
+                    No has agregado administradores secundarios. Puedes autorizar atletas desde la pestaña "Administradores".
                   </td>
                 </tr>
               </tbody>
@@ -161,44 +160,44 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
         </div>
 
         <!-- Recent Routines Quick Peek -->
-        <div class="card border border-dark" style="background-color: #141219;">
-          <div class="card-header border-bottom border-dark d-flex justify-content-between align-items-center py-3">
-            <h5 class="card-title fw-bold text-light mb-0">
-              <i class="bi bi-clock-history text-primary me-2"></i>Últimas Rutinas Asignadas
-            </h5>
-            <a routerLink="/routines" class="btn btn-outline-secondary btn-sm">Ver todas</a>
+        <div class="card border-0 rounded-4 panel-card overflow-hidden">
+          <div class="card-header border-0 bg-transparent px-4 py-3 d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold text-light mb-0">
+              <i class="bi bi-clock-history me-2 text-secondary"></i>Últimas Rutinas Asignadas
+            </h6>
+            <a routerLink="/routines" class="btn btn-outline-secondary btn-sm px-3 rounded-3" style="font-size: 0.8rem;">Ver todas</a>
           </div>
           <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-dark">
+            <table class="table table-hover align-middle mb-0 custom-table">
+              <thead>
                 <tr>
-                  <th>Código</th>
+                  <th class="ps-4">Código</th>
                   <th>Nombre de Rutina</th>
-                  <th>Días</th>
-                  <th>Creador</th>
+                  <th>Frecuencia</th>
+                  <th>Entrenador</th>
                   <th class="text-center">Canjes</th>
-                  <th class="text-end">Expira</th>
+                  <th class="text-end pe-4">Expira</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let r of recentRoutines">
-                  <td>
-                    <span class="badge bg-dark border border-secondary text-light font-monospace fs-6 px-2 py-1">
+                  <td class="ps-4">
+                    <span class="code-badge font-monospace">
                       {{ r.code }}
                     </span>
                   </td>
                   <td class="fw-semibold text-light">{{ r.routineName }}</td>
-                  <td><span class="badge bg-secondary">{{ r.daysCount }} Días</span></td>
+                  <td><span class="badge badge-subtle">{{ r.daysCount }} Días</span></td>
                   <td class="small text-secondary">{{ r.createdByName || r.createdBy }}</td>
                   <td class="text-center">
-                    <span class="badge bg-success bg-opacity-25 text-success border border-success">
-                      {{ r.timesRedeemed }} canje(s)
+                    <span class="badge badge-subtle">
+                      {{ r.timesRedeemed }} atleta(s)
                     </span>
                   </td>
-                  <td class="text-end small text-secondary">{{ r.expiresAtMs | date:'mediumDate' }}</td>
+                  <td class="text-end pe-4 small text-secondary">{{ r.expiresAtMs | date:'mediumDate' }}</td>
                 </tr>
                 <tr *ngIf="recentRoutines.length === 0">
-                  <td colspan="6" class="text-center py-4 text-secondary">
+                  <td colspan="6" class="text-center py-5 text-secondary small">
                     Aún no se han generado rutinas asignadas en el servidor.
                   </td>
                 </tr>
@@ -208,7 +207,61 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
         </div>
       </div>
     </div>
-  `
+  `,
+  styles: [`
+    .dashboard-page {
+      background-color: #07080b;
+    }
+    .panel-card {
+      background-color: #0e1017;
+      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+    .icon-box {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .custom-table {
+      --bs-table-bg: transparent;
+      --bs-table-color: #e2e8f0;
+      border-color: rgba(255, 255, 255, 0.06) !important;
+      thead {
+        background-color: rgba(255, 255, 255, 0.02);
+        color: #718096;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+    .badge-subtle {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e0;
+      font-weight: 500;
+    }
+    .badge-active {
+      background: rgba(0, 230, 118, 0.1);
+      border: 1px solid rgba(0, 230, 118, 0.25);
+      color: #00e676;
+    }
+    .badge-inactive {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #ef4444;
+    }
+    .code-badge {
+      background: #141722;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+  `]
 })
 export class DashboardComponent implements OnInit {
   public auth = inject(AuthService);
@@ -231,25 +284,40 @@ export class DashboardComponent implements OnInit {
   async loadMetrics(): Promise<void> {
     this.loading = true;
     try {
-      const isSuper = this.auth.currentUser()?.isSuperAdmin;
-      const uid = this.auth.currentUser()?.uid;
+      const user = this.auth.currentUser();
+      const isSuper = user?.isSuperAdmin;
+      const uid = user?.uid;
 
-      // Cargar todas las rutinas (el superadmin ve todas, el admin ve las suyas)
-      const routines = await this.routineService.listRoutines(uid, isSuper);
-      this.totalRoutines = routines.length;
-      this.totalTrainees = routines.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0);
-      this.recentRoutines = routines.slice(0, 5);
+      // Carga protegida con timeout para no congelar la UI
+      try {
+        const routines = await Promise.race([
+          this.routineService.listRoutines(uid, isSuper),
+          new Promise<AssignedRoutineRecord[]>((_, reject) => setTimeout(() => reject(new Error('Timeout rutinas')), 3500))
+        ]);
+        this.totalRoutines = routines.length;
+        this.totalTrainees = routines.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0);
+        this.recentRoutines = routines.slice(0, 5);
 
-      if (uid) {
-        const myR = routines.filter(r => r.createdBy === uid);
-        this.myRoutinesCount = myR.length;
+        if (uid) {
+          const myR = routines.filter(r => r.createdBy === uid);
+          this.myRoutinesCount = myR.length;
+        }
+
+        if (isSuper && uid) {
+          const superR = routines.filter(r => r.createdBy === uid);
+          this.superAdminRoutinesCount = superR.length;
+          this.superAdminTraineesCount = superR.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0);
+        }
+      } catch (errRoutines) {
+        console.warn('Carga de rutinas no disponible o en timeout:', errRoutines);
       }
 
       if (isSuper) {
-        this.adminsList = await this.userMgmt.listAdmins();
-        const superR = routines.filter(r => r.createdBy === uid);
-        this.superAdminRoutinesCount = superR.length;
-        this.superAdminTraineesCount = superR.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0);
+        try {
+          this.adminsList = await this.userMgmt.listAdmins();
+        } catch (errAdmins) {
+          console.warn('Carga de admins no disponible:', errAdmins);
+        }
       }
     } catch (err) {
       console.error('Error cargando métricas:', err);

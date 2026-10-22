@@ -1,25 +1,35 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="container d-flex align-items-center justify-content-center min-vh-100 py-4">
-      <div class="card p-4 p-md-5 border border-dark shadow-lg" style="max-width: 440px; width: 100%; background-color: #141219; border-radius: 1rem;">
-        <div class="text-center mb-4">
-          <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary p-3 mb-3 text-white">
-            <i class="bi bi-lightning-charge-fill fs-2"></i>
-          </div>
-          <h2 class="fw-bold mb-1 text-light">BeStrong Admin</h2>
-          <p class="text-secondary small">Panel Web Exclusivo para Administradores y Entrenadores</p>
+    <div class="login-wrapper min-vh-100 d-flex align-items-center justify-content-center p-3">
+      <div class="card p-4 p-md-5 border border-dark shadow-2xl" style="max-width: 440px; width: 100%; background-color: #0b0c10; border-radius: 1.25rem;">
+        
+        <!-- Back to home -->
+        <div class="mb-4">
+          <a routerLink="/" class="text-secondary text-decoration-none small d-inline-flex align-items-center gap-1 hover-light">
+            <i class="bi bi-arrow-left"></i> Volver a la página principal
+          </a>
         </div>
 
-        <div *ngIf="errorMessage" class="alert alert-danger d-flex align-items-center gap-2 py-2 small" role="alert">
+        <!-- Header -->
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-dark border border-secondary p-3 mb-3 text-light">
+            <i class="bi bi-shield-lock fs-2"></i>
+          </div>
+          <h2 class="fw-bold mb-1 text-light">Acceso Administrativo</h2>
+          <p class="text-secondary small mb-0">Panel exclusivo para administradores y entrenadores</p>
+        </div>
+
+        <!-- Error alert -->
+        <div *ngIf="errorMessage" class="alert alert-danger d-flex align-items-center gap-2 py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger" role="alert">
           <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
           <div>{{ errorMessage }}</div>
         </div>
@@ -27,8 +37,8 @@ import { AuthService } from '../../services/auth.service';
         <!-- Google Sign-In Button -->
         <button 
           type="button" 
-          class="btn btn-outline-light w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 mb-3 shadow-sm border-secondary"
-          style="background-color: #1a1723;"
+          class="btn btn-outline-light w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 mb-3 border-secondary"
+          style="background-color: #12141a; border-radius: 12px;"
           (click)="onLoginWithGoogle()"
           [disabled]="loading || loadingGoogle"
         >
@@ -39,15 +49,16 @@ import { AuthService } from '../../services/auth.service';
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
           </svg>
-          <span>{{ loadingGoogle ? 'Conectando con Google...' : 'Continuar con Google' }}</span>
+          <span>{{ loadingGoogle ? 'Conectando...' : 'Continuar con Google' }}</span>
         </button>
 
         <div class="d-flex align-items-center my-3 text-secondary">
           <hr class="flex-grow-1 border-secondary opacity-25">
-          <span class="px-2 small text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">o con correo y contraseña</span>
+          <span class="px-2 small text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">o credenciales</span>
           <hr class="flex-grow-1 border-secondary opacity-25">
         </div>
 
+        <!-- Email & Password Form -->
         <form (ngSubmit)="onLogin()">
           <div class="mb-3">
             <label class="form-label text-secondary small fw-medium">Correo Electrónico</label>
@@ -87,7 +98,8 @@ import { AuthService } from '../../services/auth.service';
 
           <button 
             type="submit" 
-            class="btn btn-primary w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2"
+            class="btn btn-light w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-4"
+            style="border-radius: 12px;"
             [disabled]="loading || loadingGoogle || !email || !password"
           >
             <span *ngIf="loading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -95,12 +107,35 @@ import { AuthService } from '../../services/auth.service';
           </button>
         </form>
 
-        <div class="text-center mt-4">
-          <p class="text-secondary small mb-0">Solo cuentas autorizadas con rol de administración en Firestore pueden acceder.</p>
+        <!-- Athlete notice card -->
+        <div class="p-3 rounded-4 border border-dark text-center" style="background: rgba(255, 255, 255, 0.03);">
+          <div class="d-flex align-items-center justify-content-center gap-2 mb-1 text-light small fw-bold">
+            <i class="bi bi-phone text-success"></i>
+            <span>¿Eres atleta o usuario nuevo?</span>
+          </div>
+          <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.4;">
+            El registro de atletas y seguimiento de rutinas se realiza directamente desde la app móvil.
+          </p>
+          <a 
+            href="https://play.google.com/store/apps/details?id=com.BeStrong&pcampaignid=web_share" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="btn btn-outline-success btn-sm w-100 py-2 d-flex align-items-center justify-content-center gap-2 rounded-3 fw-semibold"
+          >
+            <i class="bi bi-google-play"></i> Descargar BeStrong en Google Play
+          </a>
         </div>
       </div>
     </div>
-  `
+  `,
+  styles: [`
+    .login-wrapper {
+      background: linear-gradient(135deg, #050608 0%, #0a0d14 50%, #030406 100%);
+    }
+    .hover-light:hover {
+      color: #fff !important;
+    }
+  `]
 })
 export class LoginComponent {
   email = '';

@@ -66,31 +66,40 @@ export class UserManagementService {
   }
 
   async listAdmins(): Promise<AdminUserRecord[]> {
-    const colRef = collection(this.fb.firestore, 'admins');
-    const snap = await getDocs(colRef);
-    const admins: AdminUserRecord[] = [];
-    snap.forEach(d => {
-      const data = d.data();
-      admins.push({
-        uid: d.id,
-        email: data['email'] || '',
-        name: data['name'] || 'Admin',
-        role: data['role'] || 'admin',
-        active: data['active'] ?? true,
-        createdBy: data['createdBy'] || '',
-        createdAt: data['createdAt'] || Date.now()
+    try {
+      const colRef = collection(this.fb.firestore, 'admins');
+      const snap = await getDocs(colRef);
+      const admins: AdminUserRecord[] = [];
+      snap.forEach(d => {
+        const data = d.data();
+        admins.push({
+          uid: d.id,
+          email: data['email'] || '',
+          name: data['name'] || 'Admin',
+          role: data['role'] || 'admin',
+          active: data['active'] ?? true,
+          createdBy: data['createdBy'] || '',
+          createdAt: data['createdAt'] || Date.now()
+        });
       });
-    });
 
-    // Añadir métricas por cada admin
-    const routines = await this.routineService.listRoutines(undefined, true);
-    for (const adm of admins) {
-      const adminRoutines = routines.filter(r => r.createdBy === adm.uid);
-      adm.routinesCreatedCount = adminRoutines.length;
-      adm.traineesCount = adminRoutines.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0);
+      // Añadir métricas por cada admin
+      try {
+        const routines = await this.routineService.listRoutines(undefined, true);
+        for (const adm of admins) {
+          const adminRoutines = routines.filter(r => r.createdBy === adm.uid);
+          adm.routinesCreatedCount = adminRoutines.length;
+          adm.traineesCount = adminRoutines.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0);
+        }
+      } catch (e) {
+        console.warn('Error calculando métricas de rutinas:', e);
+      }
+
+      return admins;
+    } catch (err) {
+      console.warn('No se pudo leer la colección /admins (puede que aún no tenga reglas o documentos):', err);
+      return [];
     }
-
-    return admins;
   }
 
   async promoteToAdmin(user: AppUser, superAdminUid: string): Promise<void> {

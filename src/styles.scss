@@ -1,67 +1,57 @@
-// 🎨 Custom Bootstrap Theme for BeStrong Admin
-// Power Core Palette: Violet action, Lime progression, Gold reward
-
-$primary: #8B5CF6;
-$secondary: #A3E635;
-$warning: #F59E0B;
-$danger: #FB7185;
-$success: #34D399;
-$dark: #09090B;
-$body-bg: #09090B;
-$body-color: #FAFAFA;
-$card-bg: #141219;
-$card-border-color: #302A39;
-$border-color: #302A39;
+// 🎨 Minimalist Dark Palette for BeStrong (Pure Blacks & Clean Accents)
+$primary: #00e676;
+$secondary: #718096;
+$dark: #07080b;
+$body-bg: #07080b;
+$body-color: #f7fafc;
+$card-bg: #0d0f14;
+$card-border-color: rgba(255, 255, 255, 0.08);
+$border-color: rgba(255, 255, 255, 0.08);
 
 // Form controls styling
-$input-bg: #1D1A24;
-$input-border-color: #302A39;
-$input-color: #FAFAFA;
-$input-focus-border-color: #8B5CF6;
-$input-placeholder-color: #817A8D;
+$input-bg: #12141a;
+$input-border-color: rgba(255, 255, 255, 0.12);
+$input-color: #f7fafc;
+$input-focus-border-color: #00e676;
+$input-placeholder-color: #718096;
 
 @import "bootstrap/scss/bootstrap";
 
-// Specific fine-tuning where Bootstrap classes need subtle tweaks
 html, body {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background-color: $body-bg;
   color: $body-color;
+  -webkit-font-smoothing: antialiased;
 }
 
 .table {
   --bs-table-bg: transparent;
-  --bs-table-color: #FAFAFA;
-  --bs-table-border-color: #302A39;
+  --bs-table-color: #f7fafc;
+  --bs-table-border-color: rgba(255, 255, 255, 0.06);
 }
 
 .modal-content {
-  background-color: #141219;
-  border: 1px solid #302A39;
-  color: #FAFAFA;
+  background-color: #0d0f14;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f7fafc;
 }
 
 .nav-tabs {
-  border-bottom: 2px solid #302A39;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   .nav-link {
-    color: #B8B1C4;
+    color: #a0aec0;
     border: none;
-    border-bottom: 3px solid transparent;
+    border-bottom: 2px solid transparent;
     &.active {
-      color: #8B5CF6;
+      color: #fff;
       background: transparent;
-      border-bottom: 3px solid #8B5CF6;
+      border-bottom: 2px solid #00e676;
       font-weight: 600;
     }
     &:hover:not(.active) {
-      color: #FAFAFA;
+      color: #f7fafc;
       border-color: transparent;
     }
   }
-}
-
-.badge-outline {
-  background: transparent;
-  border: 1px solid currentColor;
 }

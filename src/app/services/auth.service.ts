@@ -19,6 +19,8 @@ export interface AdminProfile {
   isAdmin: boolean;
 }
 
+const FIRESTORE_TIMEOUT_MS = 3000;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -26,42 +28,56 @@ export class AuthService {
   public currentUser = signal<AdminProfile | null>(null);
   public isLoading = signal<boolean>(true);
 
+  private authReadyResolve?: () => void;
+  public authReadyPromise = new Promise<void>((resolve) => {
+    this.authReadyResolve = resolve;
+  });
+
   constructor(private fb: FirebaseService) {
     onAuthStateChanged(this.fb.auth, async (user: User | null) => {
-      this.isLoading.set(true);
-      if (user) {
-        const isSuper = user.uid === environment.superAdminUid;
-        let isAdm = isSuper;
+      try {
+        if (user) {
+          const isSuper = user.uid === environment.superAdminUid;
+          let isAdm = isSuper;
 
-        if (!isSuper) {
-          try {
-            const adminDocRef = doc(this.fb.firestore, 'admins', user.uid);
-            const adminSnap = await getDoc(adminDocRef);
-            if (adminSnap.exists() && adminSnap.data()['active'] === true) {
-              isAdm = true;
+          if (!isSuper) {
+            try {
+              const adminDocRef = doc(this.fb.firestore, 'admins', user.uid);
+              // Timeout seguro para que no se quede colgado si Firestore no responde
+              const adminSnap = await Promise.race([
+                getDoc(adminDocRef),
+                new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Timeout de Firestore')), FIRESTORE_TIMEOUT_MS))
+              ]);
+              if (adminSnap && adminSnap.exists() && adminSnap.data()['active'] === true) {
+                isAdm = true;
+              }
+            } catch (err) {
+              console.warn('Verificación secundaria de admin no completada:', err);
             }
-          } catch (err) {
-            console.error('Error verificando rol de administrador:', err);
           }
-        }
 
-        if (isAdm) {
-          this.currentUser.set({
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName || user.email?.split('@')[0] || 'Admin',
-            isSuperAdmin: isSuper,
-            isAdmin: isAdm
-          });
+          if (isAdm) {
+            this.currentUser.set({
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName || user.email?.split('@')[0] || 'Admin',
+              isSuperAdmin: isSuper,
+              isAdmin: isAdm
+            });
+          } else {
+            await signOut(this.fb.auth);
+            this.currentUser.set(null);
+          }
         } else {
-          // No es administrador autorizado
-          await signOut(this.fb.auth);
           this.currentUser.set(null);
         }
-      } else {
+      } catch (e) {
+        console.error('Error procesando cambio de autenticación:', e);
         this.currentUser.set(null);
+      } finally {
+        this.isLoading.set(false);
+        this.authReadyResolve?.();
       }
-      this.isLoading.set(false);
     });
   }
 
@@ -72,10 +88,17 @@ export class AuthService {
     let isAdm = isSuper;
 
     if (!isSuper) {
-      const adminDocRef = doc(this.fb.firestore, 'admins', user.uid);
-      const adminSnap = await getDoc(adminDocRef);
-      if (adminSnap.exists() && adminSnap.data()['active'] === true) {
-        isAdm = true;
+      try {
+        const adminDocRef = doc(this.fb.firestore, 'admins', user.uid);
+        const adminSnap = await Promise.race([
+          getDoc(adminDocRef),
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Timeout')), FIRESTORE_TIMEOUT_MS))
+        ]);
+        if (adminSnap && adminSnap.exists() && adminSnap.data()['active'] === true) {
+          isAdm = true;
+        }
+      } catch (err) {
+        console.warn('Error verificando admin en Firestore:', err);
       }
     }
 
@@ -92,6 +115,7 @@ export class AuthService {
       isAdmin: true
     };
     this.currentUser.set(profile);
+    this.isLoading.set(false);
     return profile;
   }
 
@@ -104,16 +128,23 @@ export class AuthService {
     let isAdm = isSuper;
 
     if (!isSuper) {
-      const adminDocRef = doc(this.fb.firestore, 'admins', user.uid);
-      const adminSnap = await getDoc(adminDocRef);
-      if (adminSnap.exists() && adminSnap.data()['active'] === true) {
-        isAdm = true;
+      try {
+        const adminDocRef = doc(this.fb.firestore, 'admins', user.uid);
+        const adminSnap = await Promise.race([
+          getDoc(adminDocRef),
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Timeout')), FIRESTORE_TIMEOUT_MS))
+        ]);
+        if (adminSnap && adminSnap.exists() && adminSnap.data()['active'] === true) {
+          isAdm = true;
+        }
+      } catch (err) {
+        console.warn('Error verificando admin en Firestore:', err);
       }
     }
 
     if (!isAdm) {
       await signOut(this.fb.auth);
-      throw new Error(`Acceso denegado: Tu cuenta de Google (${user.email || user.uid}) no está autorizada como administrador en BeStrong.`);
+      throw new Error(`Acceso denegado: La cuenta de Google (${user.email || user.uid}) no está autorizada como administrador.`);
     }
 
     const profile: AdminProfile = {
@@ -124,6 +155,7 @@ export class AuthService {
       isAdmin: true
     };
     this.currentUser.set(profile);
+    this.isLoading.set(false);
     return profile;
   }
 
