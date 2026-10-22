@@ -95,18 +95,24 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
                       <div class="small text-secondary font-monospace" style="font-size: 0.7rem;">UID: {{ adm.uid }}</div>
                     </td>
                     <td class="text-secondary small">{{ adm.email }}</td>
-                    <td><span class="badge badge-subtle">Coach</span></td>
                     <td>
-                      <span *ngIf="adm.active" class="badge badge-active">Activo</span>
-                      <span *ngIf="!adm.active && adm.requestStatus === 'pending'" class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 fw-semibold">
+                      <span class="badge badge-subtle" [class.text-warning]="isSuperAdmin(adm.uid)">
+                        {{ isSuperAdmin(adm.uid) ? 'Superadmin' : 'Coach' }}
+                      </span>
+                    </td>
+                    <td>
+                      <span *ngIf="isSuperAdmin(adm.uid)" class="badge badge-active">Activo Permanente</span>
+                      <span *ngIf="!isSuperAdmin(adm.uid) && adm.active" class="badge badge-active">Activo</span>
+                      <span *ngIf="!isSuperAdmin(adm.uid) && !adm.active && adm.requestStatus === 'pending'" class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 fw-semibold">
                         <i class="bi bi-hourglass-split me-1"></i>Pendiente Aprobación
                       </span>
-                      <span *ngIf="!adm.active && adm.requestStatus !== 'pending'" class="badge badge-inactive">Suspendido</span>
+                      <span *ngIf="!isSuperAdmin(adm.uid) && !adm.active && adm.requestStatus !== 'pending'" class="badge badge-inactive">Suspendido</span>
                     </td>
                     <td class="text-center fw-bold text-light">{{ adm.routinesCreatedCount || 0 }}</td>
                     <td class="text-center fw-bold text-light">{{ adm.traineesCount || 0 }}</td>
                     <td class="text-end pe-4">
-                      <div class="btn-group btn-group-sm">
+                      <span *ngIf="isSuperAdmin(adm.uid)" class="badge badge-subtle text-warning">Superadmin</span>
+                      <div *ngIf="!isSuperAdmin(adm.uid)" class="btn-group btn-group-sm">
                         <button 
                           *ngIf="!adm.active"
                           class="btn btn-sm btn-success text-dark fw-bold" 
@@ -308,9 +314,15 @@ export class AdminManagementComponent implements OnInit {
     return item.uid;
   }
 
+  isSuperAdmin(uid: string): boolean {
+    return this.auth.isSuperAdminUid(uid);
+  }
+
   async loadAdmins(): Promise<void> {
     try {
-      this.admins = await this.userMgmt.listAdmins();
+      const all = await this.userMgmt.listAdmins();
+      const myUid = this.auth.currentUser()?.uid;
+      this.admins = all.filter(a => a.uid !== myUid);
     } catch (err: any) {
       console.warn('Error cargando admins:', err);
       this.admins = [];

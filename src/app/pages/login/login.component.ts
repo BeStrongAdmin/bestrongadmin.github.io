@@ -276,12 +276,26 @@ export class LoginComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.route.queryParams.subscribe(params => {
       if (params['mode'] === 'register' || params['tab'] === 'register') {
         this.mode = 'register';
       }
     });
+
+    await Promise.race([
+      this.auth.authReadyPromise,
+      new Promise(r => setTimeout(r, 1500))
+    ]);
+
+    const user = this.auth.currentUser();
+    if (user) {
+      if (user.isSuperAdmin) {
+        this.router.navigate(['/admin-management']);
+      } else {
+        this.router.navigate(['/dashboard']);
+      }
+    }
   }
 
   setMode(newMode: 'login' | 'register'): void {
@@ -295,8 +309,12 @@ export class LoginComponent implements OnInit {
     this.errorMessage = '';
 
     try {
-      await this.auth.login(this.email.trim(), this.password);
-      this.router.navigate(['/dashboard']);
+      const profile = await this.auth.login(this.email.trim(), this.password);
+      if (profile.isSuperAdmin) {
+        this.router.navigate(['/admin-management']);
+      } else {
+        this.router.navigate(['/dashboard']);
+      }
     } catch (err: any) {
       this.errorMessage = this.translateError(err.code || err.message);
     } finally {
@@ -324,8 +342,12 @@ export class LoginComponent implements OnInit {
     this.errorMessage = '';
 
     try {
-      await this.auth.loginWithGoogle();
-      this.router.navigate(['/dashboard']);
+      const profile = await this.auth.loginWithGoogle();
+      if (profile.isSuperAdmin) {
+        this.router.navigate(['/admin-management']);
+      } else {
+        this.router.navigate(['/dashboard']);
+      }
     } catch (err: any) {
       this.errorMessage = this.translateError(err.code || err.message);
     } finally {

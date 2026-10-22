@@ -38,11 +38,17 @@ export class AuthService {
     this.authReadyResolve = resolve;
   });
 
+  public isSuperAdminUid(uid: string | null | undefined): boolean {
+    if (!uid) return false;
+    const list: string[] = (environment as any).superAdminUids || [environment.superAdminUid];
+    return list.includes(uid) || uid === environment.superAdminUid;
+  }
+
   constructor(private fb: FirebaseService) {
     onAuthStateChanged(this.fb.auth, async (user: User | null) => {
       try {
         if (user) {
-          const isSuper = user.uid === environment.superAdminUid;
+          const isSuper = this.isSuperAdminUid(user.uid);
           let isAdm = isSuper;
           let requestStatus: 'none' | 'pending' | 'approved' | 'rejected' = isSuper ? 'approved' : 'none';
           let phone = '';
@@ -94,7 +100,7 @@ export class AuthService {
   async login(email: string, pass: string): Promise<AdminProfile> {
     const cred = await signInWithEmailAndPassword(this.fb.auth, email, pass);
     const user = cred.user;
-    const isSuper = user.uid === environment.superAdminUid;
+    const isSuper = this.isSuperAdminUid(user.uid);
     let isAdm = isSuper;
     let requestStatus: 'none' | 'pending' | 'approved' | 'rejected' = isSuper ? 'approved' : 'none';
     let phone = '';
@@ -187,7 +193,7 @@ export class AuthService {
     provider.setCustomParameters({ prompt: 'select_account' });
     const cred = await signInWithPopup(this.fb.auth, provider);
     const user = cred.user;
-    const isSuper = user.uid === environment.superAdminUid;
+    const isSuper = this.isSuperAdminUid(user.uid);
     let isAdm = isSuper;
     let requestStatus: 'none' | 'pending' | 'approved' | 'rejected' = isSuper ? 'approved' : 'none';
     let phone = '';

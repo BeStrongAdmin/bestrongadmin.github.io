@@ -8,5 +8,9 @@ export const environment = {
     messagingSenderId: "91333760144",
     appId: "1:91333760144:web:c5d90e6b3708cf758af415"
   },
-  superAdminUid: "fCFtVKY0EQMVA9MEbINtIaRBahm1"
+  superAdminUid: "fCFtVKY0EQMVA9MEbINtIaRBahm1",
+  superAdminUids: [
+    "fCFtVKY0EQMVA9MEbINtIaRBahm1",
+    "VTVqWuR9YoQoAInnbwiiGrXAFd43"
+  ]
 };

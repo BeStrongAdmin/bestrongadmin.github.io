@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-landing',
@@ -24,7 +25,22 @@ import { RouterLink } from '@angular/router';
             <i class="bi bi-person-badge-fill"></i>
             <span>Para Entrenadores</span>
           </a>
+
+          <!-- Si ya está en sesión: ir a admin-management (Superadmin) o dashboard (Coach) -->
           <a 
+            *ngIf="auth.currentUser()" 
+            [routerLink]="auth.currentUser()?.isSuperAdmin ? '/admin-management' : '/dashboard'" 
+            class="btn btn-success btn-sm px-3 py-1 py-md-2 fw-bold d-flex align-items-center gap-2 text-dark shadow-sm"
+            style="border-radius: 10px; font-size: 0.82rem; background-color: #00e676; border-color: #00e676;"
+          >
+            <i class="bi bi-shield-check"></i>
+            <span class="d-none d-sm-inline">{{ auth.currentUser()?.isSuperAdmin ? 'Administración' : 'Ir al Panel' }}</span>
+            <span class="d-inline d-sm-none">Panel</span>
+          </a>
+
+          <!-- Si no tiene sesión: Acceso Panel a login -->
+          <a 
+            *ngIf="!auth.currentUser()" 
             routerLink="/login" 
             class="btn btn-outline-light btn-sm px-3 py-1 py-md-2 fw-semibold d-flex align-items-center gap-2 border-secondary"
             style="border-radius: 10px; background: rgba(255, 255, 255, 0.05); font-size: 0.82rem;"
@@ -329,4 +345,6 @@ import { RouterLink } from '@angular/router';
     }
   `]
 })
-export class LandingComponent {}
+export class LandingComponent {
+  public auth = inject(AuthService);
+}

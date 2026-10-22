@@ -393,7 +393,8 @@ export class DashboardComponent implements OnInit {
 
       if (isSuper) {
         try {
-          this.adminsList = await this.userMgmt.listAdmins();
+          const allAdmins = await this.userMgmt.listAdmins();
+          this.adminsList = allAdmins.filter(a => a.uid !== uid);
         } catch (errAdmins) {
           console.warn('Carga de admins no disponible:', errAdmins);
         }
