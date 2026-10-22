@@ -49,7 +49,7 @@ import { RouterLink } from '@angular/router';
             </p>
 
             <div class="d-flex flex-column flex-sm-row align-items-center justify-content-center gap-3">
-              <a routerLink="/login" class="btn btn-cta btn-lg px-4 py-3 rounded-4 fw-black d-inline-flex align-items-center gap-2 shadow-lg">
+              <a [routerLink]="['/login']" [queryParams]="{mode: 'register'}" class="btn btn-cta btn-lg px-4 py-3 rounded-4 fw-black d-inline-flex align-items-center gap-2 shadow-lg">
                 <i class="bi bi-lightning-charge-fill text-dark"></i>
                 <span>Comenzar Gratis como Entrenador</span>
               </a>
@@ -211,7 +211,7 @@ import { RouterLink } from '@angular/router';
             <p class="text-secondary small mb-4 mx-auto" style="max-width: 550px;">
               Plataforma 100% gratuita para entrenadores y alumnos. Sin comisiones, sin pagos obligatorios.
             </p>
-            <a routerLink="/login" class="btn btn-cta btn-lg px-5 py-3 rounded-4 fw-black d-inline-flex align-items-center gap-2 shadow-lg">
+            <a [routerLink]="['/login']" [queryParams]="{mode: 'register'}" class="btn btn-cta btn-lg px-5 py-3 rounded-4 fw-black d-inline-flex align-items-center gap-2 shadow-lg">
               <i class="bi bi-arrow-right-circle-fill text-dark"></i>
               <span>Entrar al Panel de Control</span>
             </a>

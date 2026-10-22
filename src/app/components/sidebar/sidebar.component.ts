@@ -74,10 +74,12 @@ import { AuthService } from '../../services/auth.service';
               routerLink="/generator" 
               routerLinkActive="active-link" 
               class="nav-link-custom d-flex align-items-center gap-2 px-3 py-2 rounded-3 text-secondary text-decoration-none"
+              [class.opacity-50]="!auth.currentUser()?.isAdmin"
               (click)="closeMobileSidebar()"
             >
               <i class="bi bi-cpu"></i>
               <span>Generador Biomecánico</span>
+              <i *ngIf="!auth.currentUser()?.isAdmin" class="bi bi-lock-fill ms-auto text-warning opacity-75" style="font-size: 0.75rem;" title="Bloqueado hasta aprobación"></i>
             </a>
           </li>
           <li class="nav-item">
@@ -85,10 +87,12 @@ import { AuthService } from '../../services/auth.service';
               routerLink="/routines" 
               routerLinkActive="active-link" 
               class="nav-link-custom d-flex align-items-center gap-2 px-3 py-2 rounded-3 text-secondary text-decoration-none"
+              [class.opacity-50]="!auth.currentUser()?.isAdmin"
               (click)="closeMobileSidebar()"
             >
               <i class="bi bi-collection"></i>
               <span>Rutinas Asignadas</span>
+              <i *ngIf="!auth.currentUser()?.isAdmin" class="bi bi-lock-fill ms-auto text-warning opacity-75" style="font-size: 0.75rem;" title="Bloqueado hasta aprobación"></i>
             </a>
           </li>
         </ul>
@@ -128,6 +132,16 @@ import { AuthService } from '../../services/auth.service';
           </li>
           <li class="nav-item">
             <a 
+              routerLink="/coaches" 
+              class="nav-link-custom d-flex align-items-center gap-2 px-3 py-2 rounded-3 text-secondary text-decoration-none"
+              (click)="closeMobileSidebar()"
+            >
+              <i class="bi bi-info-circle text-success"></i>
+              <span>Landing de Coaches</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a 
               href="https://play.google.com/store/apps/details?id=com.BeStrong&pcampaignid=web_share" 
               target="_blank" 
               rel="noopener noreferrer"
@@ -151,8 +165,12 @@ import { AuthService } from '../../services/auth.service';
               {{ auth.currentUser()?.email }}
             </div>
           </div>
-          <span class="badge" [ngClass]="auth.currentUser()?.isSuperAdmin ? 'bg-dark border border-warning text-warning' : 'bg-dark border border-secondary text-secondary'" style="font-size: 0.65rem;">
-            {{ auth.currentUser()?.isSuperAdmin ? 'SUPERADMIN' : 'ADMIN' }}
+          <span 
+            class="badge" 
+            [ngClass]="auth.currentUser()?.isSuperAdmin ? 'bg-dark border border-warning text-warning' : (auth.currentUser()?.isAdmin ? 'bg-dark border border-success text-success' : 'bg-dark border border-warning text-warning')" 
+            style="font-size: 0.65rem;"
+          >
+            {{ auth.currentUser()?.isSuperAdmin ? 'SUPERADMIN' : (auth.currentUser()?.isAdmin ? 'COACH' : 'PENDIENTE') }}
           </span>
         </div>
 

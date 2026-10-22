@@ -29,6 +29,8 @@ export interface AdminUserRecord {
   name: string;
   role: 'superadmin' | 'admin';
   active: boolean;
+  requestStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  phone?: string;
   createdBy: string;
   createdAt: number;
   routinesCreatedCount?: number;
@@ -78,6 +80,8 @@ export class UserManagementService {
           name: data['name'] || 'Admin',
           role: data['role'] || 'admin',
           active: data['active'] ?? true,
+          requestStatus: data['requestStatus'] || (data['active'] ? 'approved' : 'pending'),
+          phone: data['phone'] || '',
           createdBy: data['createdBy'] || '',
           createdAt: data['createdAt'] || Date.now()
         });
@@ -110,6 +114,7 @@ export class UserManagementService {
       name: user.displayName || user.username || 'Admin',
       role: 'admin',
       active: true,
+      requestStatus: 'approved',
       createdBy: superAdminUid,
       createdAt: Date.now()
     };
@@ -118,7 +123,10 @@ export class UserManagementService {
 
   async setAdminActiveStatus(adminUid: string, active: boolean): Promise<void> {
     const adminRef = doc(this.fb.firestore, 'admins', adminUid);
-    await updateDoc(adminRef, { active });
+    await updateDoc(adminRef, { 
+      active,
+      requestStatus: active ? 'approved' : 'rejected'
+    });
   }
 
   async revokeAdmin(adminUid: string): Promise<void> {

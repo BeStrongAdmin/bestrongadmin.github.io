@@ -86,30 +86,44 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
                   </tr>
 
                   <!-- Additional admins -->
-                  <tr *ngFor="let adm of admins; trackBy: trackByAdminUid">
+                  <tr *ngFor="let adm of admins; trackBy: trackByAdminUid" [class.table-warning-bg]="!adm.active && adm.requestStatus === 'pending'">
                     <td class="ps-4">
                       <div class="fw-semibold text-light">{{ adm.name }}</div>
-                      <div class="small text-secondary font-monospace" style="font-size: 0.72rem;">UID: {{ adm.uid }}</div>
+                      <div *ngIf="adm.phone" class="small text-secondary">
+                        <i class="bi bi-whatsapp text-success me-1"></i>{{ adm.phone }}
+                      </div>
+                      <div class="small text-secondary font-monospace" style="font-size: 0.7rem;">UID: {{ adm.uid }}</div>
                     </td>
                     <td class="text-secondary small">{{ adm.email }}</td>
-                    <td><span class="badge badge-subtle">Admin</span></td>
+                    <td><span class="badge badge-subtle">Coach</span></td>
                     <td>
-                      <span class="badge" [ngClass]="adm.active ? 'badge-active' : 'badge-inactive'">
-                        {{ adm.active ? 'Activo' : 'Suspendido' }}
+                      <span *ngIf="adm.active" class="badge badge-active">Activo</span>
+                      <span *ngIf="!adm.active && adm.requestStatus === 'pending'" class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 fw-semibold">
+                        <i class="bi bi-hourglass-split me-1"></i>Pendiente Aprobación
                       </span>
+                      <span *ngIf="!adm.active && adm.requestStatus !== 'pending'" class="badge badge-inactive">Suspendido</span>
                     </td>
                     <td class="text-center fw-bold text-light">{{ adm.routinesCreatedCount || 0 }}</td>
                     <td class="text-center fw-bold text-light">{{ adm.traineesCount || 0 }}</td>
                     <td class="text-end pe-4">
                       <div class="btn-group btn-group-sm">
                         <button 
+                          *ngIf="!adm.active"
+                          class="btn btn-sm btn-success text-dark fw-bold" 
+                          (click)="toggleAdminStatus(adm)"
+                          title="Aprobar y activar acceso administrativo completo"
+                        >
+                          <i class="bi bi-check2-circle me-1"></i> Aprobar
+                        </button>
+                        <button 
+                          *ngIf="adm.active"
                           class="btn btn-sm btn-outline-secondary" 
                           (click)="toggleAdminStatus(adm)"
                         >
-                          {{ adm.active ? 'Suspender' : 'Activar' }}
+                          Suspender
                         </button>
-                        <button class="btn btn-sm btn-outline-danger" (click)="revokeAdmin(adm)">
-                          <i class="bi bi-trash"></i> Revocar
+                        <button class="btn btn-sm btn-outline-danger" (click)="revokeAdmin(adm)" title="Revocar cuenta">
+                          <i class="bi bi-trash"></i>
                         </button>
                       </div>
                     </td>
@@ -264,6 +278,9 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
       border: 1px solid rgba(239, 68, 68, 0.25);
       color: #ef4444;
     }
+    .table-warning-bg {
+      background-color: rgba(245, 158, 11, 0.04) !important;
+    }
   `]
 })
 export class AdminManagementComponent implements OnInit {
@@ -352,9 +369,11 @@ export class AdminManagementComponent implements OnInit {
 
   async toggleAdminStatus(adm: AdminUserRecord): Promise<void> {
     try {
-      await this.userMgmt.setAdminActiveStatus(adm.uid, !adm.active);
-      adm.active = !adm.active;
-      this.feedbackMsg = `Estado de "${adm.name}" actualizado a ${adm.active ? 'Activo' : 'Suspendido'}.`;
+      const newStatus = !adm.active;
+      await this.userMgmt.setAdminActiveStatus(adm.uid, newStatus);
+      adm.active = newStatus;
+      adm.requestStatus = newStatus ? 'approved' : 'rejected';
+      this.feedbackMsg = `Estado de "${adm.name}" actualizado a ${adm.active ? 'Activo (Aprobado)' : 'Suspendido'}.`;
     } catch (err: any) {
       alert(err.message || 'Error al cambiar estado.');
     }

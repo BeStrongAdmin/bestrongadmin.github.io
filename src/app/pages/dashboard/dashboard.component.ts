@@ -22,12 +22,68 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
             <p class="text-secondary small mb-0">Bienvenido, {{ auth.currentUser()?.displayName }}. Vista del sistema y analíticas.</p>
           </div>
           <div class="d-flex gap-2">
-            <a routerLink="/generator" class="btn btn-light btn-sm fw-bold d-flex align-items-center gap-2 px-3 rounded-3">
+            <a *ngIf="auth.currentUser()?.isAdmin" routerLink="/generator" class="btn btn-light btn-sm fw-bold d-flex align-items-center gap-2 px-3 rounded-3">
               <i class="bi bi-plus-lg"></i> Nueva Rutina
             </a>
+            <button *ngIf="!auth.currentUser()?.isAdmin" class="btn btn-outline-secondary btn-sm opacity-50 d-flex align-items-center gap-2 px-3 rounded-3" disabled title="Requiere validación de administrador">
+              <i class="bi bi-lock-fill text-warning"></i> Nueva Rutina
+            </button>
             <a *ngIf="auth.currentUser()?.isSuperAdmin" routerLink="/admin-management" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 px-3 rounded-3">
               <i class="bi bi-people"></i> Admins
             </a>
+          </div>
+        </div>
+
+        <!-- Banner de Estado de Validación para Coaches no Aprobados -->
+        <div *ngIf="!auth.currentUser()?.isAdmin" class="card border-0 rounded-4 mb-4 shadow-lg overflow-hidden position-relative lock-banner">
+          <div class="p-3 p-md-4">
+            <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+              <div class="d-flex align-items-start gap-3">
+                <div class="rounded-circle p-3 d-flex align-items-center justify-content-center flex-shrink-0 lock-icon-box">
+                  <i class="bi bi-shield-lock-fill text-warning fs-3"></i>
+                </div>
+                <div>
+                  <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                    <h5 class="fw-bold text-light mb-0">Espere hasta que se valide su acceso</h5>
+                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1">
+                      {{ auth.currentUser()?.requestStatus === 'pending' ? 'SOLICITUD EN PROCESO' : 'MODO SOLO LECTURA' }}
+                    </span>
+                  </div>
+                  <p class="text-secondary small mb-2" style="max-width: 720px; line-height: 1.5;">
+                    Tu cuenta como entrenador está registrada pero aún no cuenta con permisos activos de administración.
+                    Todas las funciones y métricas están en <strong>modo visible deshabilitado</strong> hasta que tu acceso sea validado por el equipo.
+                  </p>
+                  <div class="small text-light d-flex align-items-center gap-2 flex-wrap">
+                    <span class="text-secondary">
+                      <i class="bi bi-envelope-check text-success me-1"></i> Se notificará a: <code class="text-info">behealthlyapp@gmail.com</code>
+                    </span>
+                    <span class="text-secondary">•</span>
+                    <span class="text-secondary">
+                      <i class="bi bi-inbox text-warning me-1"></i> Mantente al pendiente de tu bandeja de entrada en: <strong class="text-light">{{ auth.currentUser()?.email }}</strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex-shrink-0 align-self-stretch align-self-md-center">
+                <button 
+                  type="button" 
+                  class="btn btn-warning text-dark fw-bold px-4 py-2 w-100 d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-sm"
+                  (click)="onRequestAccess()"
+                  [disabled]="requestingAccess"
+                >
+                  <span *ngIf="requestingAccess" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  <i *ngIf="!requestingAccess" class="bi bi-shield-check"></i>
+                  <span>{{ auth.currentUser()?.requestStatus === 'pending' ? 'Reenviar Solicitud de Acceso' : 'Solicitar Permiso de Administración' }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Feedback message -->
+            <div *ngIf="requestFeedback" class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 small mt-3 mb-0 border-0 bg-success bg-opacity-10 text-success rounded-3">
+              <i class="bi bi-check-circle-fill flex-shrink-0"></i>
+              <div>{{ requestFeedback }}</div>
+            </div>
           </div>
         </div>
 
@@ -166,7 +222,10 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
               <h6 class="fw-bold text-light mb-0">
                 <i class="bi bi-clock-history me-2 text-secondary"></i>Últimas Rutinas Asignadas
               </h6>
-              <a routerLink="/routines" class="btn btn-outline-secondary btn-sm px-3 rounded-3" style="font-size: 0.8rem;">Ver todas</a>
+              <a *ngIf="auth.currentUser()?.isAdmin" routerLink="/routines" class="btn btn-outline-secondary btn-sm px-3 rounded-3" style="font-size: 0.8rem;">Ver todas</a>
+              <span *ngIf="!auth.currentUser()?.isAdmin" class="badge badge-subtle text-secondary py-1 px-2" style="font-size: 0.75rem;">
+                <i class="bi bi-lock-fill text-warning me-1"></i>Vista Previa
+              </span>
             </div>
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0 custom-table">
@@ -214,6 +273,17 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
     .panel-card {
       background-color: #0d0f14;
       border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+    .lock-banner {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(13, 15, 20, 0.98) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.25) !important;
+    }
+    .lock-icon-box {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    .locked-mode {
+      opacity: 0.85;
     }
     .icon-box {
       width: 40px;
@@ -268,6 +338,8 @@ export class DashboardComponent implements OnInit {
   private userMgmt = inject(UserManagementService);
 
   loading = true;
+  requestingAccess = false;
+  requestFeedback = '';
   totalRoutines = 0;
   totalTrainees = 0;
   myRoutinesCount = 0;
@@ -330,6 +402,20 @@ export class DashboardComponent implements OnInit {
       console.error('Error cargando métricas:', err);
     } finally {
       this.loading = false;
+    }
+  }
+
+  async onRequestAccess(): Promise<void> {
+    this.requestingAccess = true;
+    this.requestFeedback = '';
+    try {
+      await this.auth.requestAdminAccess();
+      const userEmail = this.auth.currentUser()?.email || 'tu correo';
+      this.requestFeedback = `¡Solicitud enviada con éxito! Se ha notificado al equipo en behealthlyapp@gmail.com. Por favor mantente al pendiente de tu bandeja de entrada en ${userEmail}.`;
+    } catch (err: any) {
+      this.requestFeedback = err.message || 'Error enviando solicitud. Por favor intenta de nuevo.';
+    } finally {
+      this.requestingAccess = false;
     }
   }
 }
