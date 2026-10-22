@@ -3,6 +3,8 @@ import {
   User, 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut 
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -80,6 +82,38 @@ export class AuthService {
     if (!isAdm) {
       await signOut(this.fb.auth);
       throw new Error('Acceso denegado: Tu cuenta no tiene permisos de administrador en BeStrong.');
+    }
+
+    const profile: AdminProfile = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName || user.email?.split('@')[0] || 'Admin',
+      isSuperAdmin: isSuper,
+      isAdmin: true
+    };
+    this.currentUser.set(profile);
+    return profile;
+  }
+
+  async loginWithGoogle(): Promise<AdminProfile> {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const cred = await signInWithPopup(this.fb.auth, provider);
+    const user = cred.user;
+    const isSuper = user.uid === environment.superAdminUid;
+    let isAdm = isSuper;
+
+    if (!isSuper) {
+      const adminDocRef = doc(this.fb.firestore, 'admins', user.uid);
+      const adminSnap = await getDoc(adminDocRef);
+      if (adminSnap.exists() && adminSnap.data()['active'] === true) {
+        isAdm = true;
+      }
+    }
+
+    if (!isAdm) {
+      await signOut(this.fb.auth);
+      throw new Error(`Acceso denegado: Tu cuenta de Google (${user.email || user.uid}) no está autorizada como administrador en BeStrong.`);
     }
 
     const profile: AdminProfile = {
