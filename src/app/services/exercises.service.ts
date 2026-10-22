@@ -58,6 +58,7 @@ function normalizeMuscles(muscles: any): string[] {
 })
 export class ExercisesService {
   private exercises: Exercise[] = [];
+  private exerciseMap = new Map<string, Exercise>();
 
   constructor() {
     this.loadExercises();
@@ -66,11 +67,15 @@ export class ExercisesService {
   private loadExercises(): void {
     const rawList = (rawData as any)?.exercises || (rawData as any)?.default?.exercises || rawData;
     if (Array.isArray(rawList)) {
-      this.exercises = rawList.map((ex: any) => ({
-        ...ex,
-        primary_muscle_es: normalizeMuscles(ex.primary_muscle_es),
-        secondary_muscles_es: normalizeMuscles(ex.secondary_muscles_es)
-      }));
+      this.exercises = rawList.map((ex: any) => {
+        const mapped: Exercise = {
+          ...ex,
+          primary_muscle_es: normalizeMuscles(ex.primary_muscle_es),
+          secondary_muscles_es: normalizeMuscles(ex.secondary_muscles_es)
+        };
+        this.exerciseMap.set(mapped.id, mapped);
+        return mapped;
+      });
     }
   }
 
@@ -79,7 +84,7 @@ export class ExercisesService {
   }
 
   getById(id: string): Exercise | undefined {
-    return this.exercises.find(e => e.id === id);
+    return this.exerciseMap.get(id);
   }
 
   getForPattern(pattern: string, emphasis?: string): Exercise[] {
@@ -88,7 +93,6 @@ export class ExercisesService {
       const pat = e.movement_pattern.toLowerCase().trim();
       const targetPat = pattern.toLowerCase().trim();
 
-      // Equivalencias y matching
       if (pat === targetPat) return true;
       if (targetPat === 'core' && (pat.includes('core') || pat.includes('ab') || pat === 'spinal_flexion')) return true;
       if (targetPat === 'squat' && pat.includes('squat')) return true;
