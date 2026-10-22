@@ -15,14 +15,23 @@ import { RouterLink } from '@angular/router';
           <span class="fs-5 fw-black text-light tracking-tight">BeStrong</span>
         </div>
 
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2 gap-md-3">
+          <a 
+            routerLink="/coaches" 
+            class="btn btn-sm px-2 px-md-3 py-1 py-md-2 fw-semibold d-inline-flex align-items-center gap-1 border-0 text-success"
+            style="border-radius: 10px; font-size: 0.82rem; background: rgba(0, 230, 118, 0.08);"
+          >
+            <i class="bi bi-person-badge-fill"></i>
+            <span>Para Entrenadores</span>
+          </a>
           <a 
             routerLink="/login" 
             class="btn btn-outline-light btn-sm px-3 py-1 py-md-2 fw-semibold d-flex align-items-center gap-2 border-secondary"
             style="border-radius: 10px; background: rgba(255, 255, 255, 0.05); font-size: 0.82rem;"
           >
             <i class="bi bi-person-fill-lock text-success"></i>
-            <span>Acceso Entrenadores</span>
+            <span class="d-none d-sm-inline">Acceso Panel</span>
+            <span class="d-inline d-sm-none">Entrar</span>
           </a>
         </div>
       </header>

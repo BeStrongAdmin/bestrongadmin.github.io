@@ -125,6 +125,14 @@ import { AuthService } from '../../services/auth.service';
             <i class="bi bi-google-play"></i> Descargar BeStrong en Google Play
           </a>
         </div>
+
+        <!-- Coaches features link -->
+        <div class="text-center mt-3">
+          <a routerLink="/coaches" class="text-secondary small text-decoration-none hover-light">
+            <i class="bi bi-info-circle me-1 text-success"></i> ¿Qué funciones incluye el Panel para Coaches? 
+            <span class="text-success fw-semibold">Ver aquí</span>
+          </a>
+        </div>
       </div>
     </div>
   `,

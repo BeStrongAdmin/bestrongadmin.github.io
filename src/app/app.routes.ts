@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { LandingComponent } from './pages/landing/landing.component';
+import { CoachesLandingComponent } from './pages/coaches-landing/coaches-landing.component';
 import { LoginComponent } from './pages/login/login.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { RoutineGeneratorComponent } from './pages/routine-generator/routine-generator.component';
@@ -9,6 +10,8 @@ import { adminGuard, superAdminGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', component: LandingComponent },
+  { path: 'coaches', component: CoachesLandingComponent },
+  { path: 'entrenadores', redirectTo: 'coaches' },
   { path: 'login', component: LoginComponent },
   { path: 'dashboard', component: DashboardComponent, canActivate: [adminGuard] },
   { path: 'generator', component: RoutineGeneratorComponent, canActivate: [adminGuard] },
