@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import rawData from '../data/bestrong_exercises.json';
+import exerciseImagesMap from '../data/exercise_images_map.json';
 
 export interface Exercise {
   id: string;
@@ -120,6 +121,8 @@ export class ExercisesService {
     return Array.from(set).sort();
   }
 
+  private imageMap: Record<string, string> = exerciseImagesMap as Record<string, string>;
+
   search(query: string, muscleFilter?: string, patternFilter?: string): Exercise[] {
     const q = query.toLowerCase().trim();
     return this.exercises.filter(ex => {
@@ -140,5 +143,34 @@ export class ExercisesService {
       const nameEn = ex.name_en?.toLowerCase() || '';
       return nameEs.includes(q) || nameEn.includes(q) || ex.id.toLowerCase().includes(q);
     });
+  }
+
+  getImageUrl(idOrImgSrc?: string): string {
+    if (!idOrImgSrc) return '';
+    const clean = idOrImgSrc.replace('.gif', '').replace('.png', '').replace('.jpg', '');
+    if (this.imageMap[clean]) {
+      return this.imageMap[clean];
+    }
+    const ex = this.exerciseMap.get(idOrImgSrc);
+    if (ex && ex.img_src) {
+      const exKey = ex.img_src.replace('.gif', '').replace('.png', '').replace('.jpg', '');
+      if (this.imageMap[exKey]) {
+        return this.imageMap[exKey];
+      }
+    }
+    return '';
+  }
+
+  getMusclesForExercises(ids: string[]): string[] {
+    const set = new Set<string>();
+    for (const id of ids) {
+      const ex = this.exerciseMap.get(id);
+      if (ex) {
+        for (const m of ex.primary_muscle_es) {
+          if (m) set.add(m);
+        }
+      }
+    }
+    return Array.from(set);
   }
 }

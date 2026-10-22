@@ -149,10 +149,10 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                   </thead>
                   <tbody>
                     <tr *ngFor="let ex of day.exercises">
-                      <td class="text-light fw-medium small">{{ ex.exerciseName }}</td>
-                      <td><span class="badge badge-subtle">{{ ex.movementPattern }}</span></td>
+                      <td class="text-light fw-medium small">{{ ex.exerciseName || ex.name_es || ex.name }}</td>
+                      <td><span class="badge badge-subtle">{{ ex.movementPattern || ex.movement_pattern || 'General' }}</span></td>
                       <td class="text-center fw-bold small text-light">{{ ex.sets }}</td>
-                      <td class="text-center small text-secondary">{{ ex.reps }}</td>
+                      <td class="text-center small text-secondary">{{ ex.reps || ex.repsRange }}</td>
                     </tr>
                   </tbody>
                 </table>

@@ -25,6 +25,19 @@ interface SlotSelection {
   repsRange: string;
 }
 
+interface CustomExerciseItem {
+  uid: string;
+  exerciseId: string;
+  sets: number;
+  repsRange: string;
+  isFinisher?: boolean;
+}
+
+interface CustomDayPlan {
+  name: string;
+  exercises: CustomExerciseItem[];
+}
+
 @Component({
   selector: 'app-routine-generator',
   standalone: true,
@@ -39,8 +52,8 @@ interface SlotSelection {
         <!-- Top Action Bar -->
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
           <div>
-            <h1 class="h4 fw-bold mb-1 text-light tracking-tight">Generador Biomecánico de Rutinas</h1>
-            <p class="text-secondary small mb-0">Diseño inteligente de rutinas con código de canje para BeStrong.</p>
+            <h1 class="h4 fw-bold mb-1 text-light tracking-tight">Generador de Rutinas</h1>
+            <p class="text-secondary small mb-0">Diseña rutinas con código de canje para BeStrong (Presets Biomecánicos o Personalizadas).</p>
           </div>
           <div class="d-flex gap-2">
             <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 rounded-3" (click)="regenerateCode()">
@@ -76,6 +89,28 @@ interface SlotSelection {
           <button type="button" class="btn-close btn-close-white" (click)="errorMessage = ''"></button>
         </div>
 
+        <!-- Mode Selector Switch -->
+        <div class="d-flex gap-2 mb-4 p-1 rounded-4 panel-card" style="width: fit-content; max-width: 100%;">
+          <button 
+            type="button" 
+            class="btn btn-sm rounded-3 px-3 py-2 fw-semibold d-flex align-items-center gap-2 mode-pill-btn"
+            [class.active-mode]="generatorMode === 'preset'"
+            (click)="setGeneratorMode('preset')"
+          >
+            <i class="bi bi-lightning-charge-fill text-warning"></i>
+            <span>Split Biomecánico Inteligente</span>
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-sm rounded-3 px-3 py-2 fw-semibold d-flex align-items-center gap-2 mode-pill-btn"
+            [class.active-mode]="generatorMode === 'custom'"
+            (click)="setGeneratorMode('custom')"
+          >
+            <i class="bi bi-sliders text-success"></i>
+            <span>100% Personalizada (Libre)</span>
+          </button>
+        </div>
+
         <!-- Top Settings Panel -->
         <div class="card p-3 p-md-4 rounded-4 border-0 panel-card mb-4">
           <div class="row g-3">
@@ -83,7 +118,9 @@ interface SlotSelection {
               <label class="form-label text-secondary small fw-medium mb-1">Nombre de la Rutina</label>
               <input type="text" class="form-control form-control-sm rounded-3" [(ngModel)]="routineName" placeholder="Ej: Hipertrofia Fuerza Pro">
             </div>
-            <div class="col-6 col-md-3">
+
+            <!-- Preset Mode Days Count -->
+            <div class="col-6 col-md-3" *ngIf="generatorMode === 'preset'">
               <label class="form-label text-secondary small fw-medium mb-1">Frecuencia Semanal</label>
               <select class="form-select form-select-sm rounded-3" [(ngModel)]="daysCount" (ngModelChange)="onDaysCountChange()">
                 <option [value]="2">2 Días (Full Body)</option>
@@ -93,6 +130,21 @@ interface SlotSelection {
                 <option [value]="6">6 Días (Push / Pull / Leg x2)</option>
               </select>
             </div>
+
+            <!-- Custom Mode Days Count (1 to 7 days) -->
+            <div class="col-6 col-md-3" *ngIf="generatorMode === 'custom'">
+              <label class="form-label text-secondary small fw-medium mb-1">Días de Entrenamiento</label>
+              <select class="form-select form-select-sm rounded-3" [(ngModel)]="customDaysCount" (ngModelChange)="onCustomDaysCountChange()">
+                <option [value]="1">1 Día</option>
+                <option [value]="2">2 Días</option>
+                <option [value]="3">3 Días</option>
+                <option [value]="4">4 Días</option>
+                <option [value]="5">5 Días</option>
+                <option [value]="6">6 Días</option>
+                <option [value]="7">7 Días</option>
+              </select>
+            </div>
+
             <div class="col-6 col-md-2">
               <label class="form-label text-secondary small fw-medium mb-1">Objetivo</label>
               <select class="form-select form-select-sm rounded-3" [(ngModel)]="goal">
@@ -101,6 +153,7 @@ interface SlotSelection {
                 <option value="endurance">Resistencia</option>
               </select>
             </div>
+
             <div class="col-12 col-md-2">
               <label class="form-label text-secondary small fw-medium mb-1">Código de Canje</label>
               <input type="text" class="form-control form-control-sm font-monospace text-center fw-bold text-success rounded-3" [(ngModel)]="routineCode" readonly>
@@ -108,96 +161,287 @@ interface SlotSelection {
           </div>
         </div>
 
-        <!-- Day Navigation Tabs -->
-        <ul class="nav nav-tabs mb-4 border-0 gap-2">
-          <li class="nav-item" *ngFor="let dayType of dayTypes; let i = index">
-            <button 
-              type="button"
-              class="day-tab-btn btn btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0" 
-              [class.active-day-tab]="currentDayIndex === i"
-              (click)="onSelectDay(i)"
-            >
-              <span class="badge" [ngClass]="currentDayIndex === i ? 'bg-success text-dark fw-bold' : 'bg-dark text-secondary border border-secondary'">
-                Día {{ i + 1 }}
-              </span>
-              <span class="text-uppercase small fw-semibold">{{ dayType }}</span>
-            </button>
-          </li>
-        </ul>
+        <!-- ========================================== -->
+        <!-- VIEW 1: PRESET BIOMECHANICAL SPLIT         -->
+        <!-- ========================================== -->
+        <ng-container *ngIf="generatorMode === 'preset'">
+          <!-- Day Navigation Tabs -->
+          <ul class="nav nav-tabs mb-4 border-0 gap-2">
+            <li class="nav-item" *ngFor="let dayType of dayTypes; let i = index">
+              <button 
+                type="button"
+                class="day-tab-btn btn btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0" 
+                [class.active-day-tab]="currentDayIndex === i"
+                (click)="onSelectDay(i)"
+              >
+                <span class="badge" [ngClass]="currentDayIndex === i ? 'bg-success text-dark fw-bold' : 'bg-dark text-secondary border border-secondary'">
+                  Día {{ i + 1 }}
+                </span>
+                <span class="text-uppercase small fw-semibold">{{ dayType }}</span>
+              </button>
+            </li>
+          </ul>
 
-        <!-- Current Day Slots -->
-        <div class="row g-3">
-          <div class="col-12 col-lg-6" *ngFor="let slot of currentSlots; trackBy: trackBySlotId">
-            <div class="card h-100 p-3 rounded-4 border-0 panel-card" [style.background-color]="slot.isFinisher ? '#11131a' : '#0d0f14'">
-              <!-- Slot Header -->
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                  <span class="badge" [ngClass]="slot.isFinisher ? 'badge-finisher' : 'badge-pattern'">
-                    {{ slot.isFinisher ? 'FINISHER' : slot.movementPattern }}
-                  </span>
-                  <span *ngIf="slot.emphasis" class="badge badge-subtle ms-1">{{ slot.emphasis }}</span>
-                  <h6 class="fw-bold text-light mt-1 mb-0" style="font-size: 0.95rem;">{{ slot.label }}</h6>
-                </div>
-              </div>
-
-              <!-- Selected Exercise Box -->
-              <div class="d-flex align-items-center justify-content-between p-2 rounded-3 my-2" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
-                <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
-                  <i class="bi bi-activity text-success fs-5"></i>
-                  <div class="text-truncate">
-                    <div class="fw-semibold text-light text-truncate" style="font-size: 0.9rem;">
-                      {{ getExerciseName(selections[currentDayIndex]?.[slot.id]?.exerciseId) }}
-                    </div>
-                    <div class="text-secondary small" style="font-size: 0.75rem;">
-                      {{ getExerciseMuscle(selections[currentDayIndex]?.[slot.id]?.exerciseId) }}
-                    </div>
+          <!-- Current Day Slots -->
+          <div class="row g-3">
+            <div class="col-12 col-lg-6" *ngFor="let slot of currentSlots; trackBy: trackBySlotId">
+              <div class="card h-100 p-3 rounded-4 border-0 panel-card" [style.background-color]="slot.isFinisher ? '#11131a' : '#0d0f14'">
+                <!-- Slot Header -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <span class="badge" [ngClass]="slot.isFinisher ? 'badge-finisher' : 'badge-pattern'">
+                      {{ slot.isFinisher ? 'FINISHER' : slot.movementPattern }}
+                    </span>
+                    <span *ngIf="slot.emphasis" class="badge badge-subtle ms-1">{{ slot.emphasis }}</span>
+                    <h6 class="fw-bold text-light mt-1 mb-0" style="font-size: 0.95rem;">{{ slot.label }}</h6>
                   </div>
                 </div>
 
-                <button class="btn btn-outline-secondary btn-sm text-nowrap rounded-3 py-1 px-2" style="font-size: 0.8rem;" (click)="openSearchModal(slot)">
-                  <i class="bi bi-search"></i> Cambiar
-                </button>
-              </div>
+                <!-- Selected Exercise Box with Thumbnail -->
+                <div class="d-flex align-items-center justify-content-between p-2 rounded-3 my-2" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                  <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
+                    <!-- Exercise GIF Thumbnail -->
+                    <div class="thumb-box flex-shrink-0">
+                      <img 
+                        *ngIf="getExerciseImage(selections[currentDayIndex]?.[slot.id]?.exerciseId)" 
+                        [src]="getExerciseImage(selections[currentDayIndex]?.[slot.id]?.exerciseId)" 
+                        class="thumb-img rounded-2" 
+                        alt=""
+                        loading="lazy"
+                      >
+                      <i *ngIf="!getExerciseImage(selections[currentDayIndex]?.[slot.id]?.exerciseId)" class="bi bi-activity text-success fs-5"></i>
+                    </div>
 
-              <!-- Sets & Reps Inputs -->
-              <div class="row g-2 mt-1">
-                <div class="col-6">
-                  <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Series</label>
-                  <div class="input-group input-group-sm">
-                    <button class="btn btn-outline-secondary" type="button" (click)="adjustSets(slot.id, -1)">-</button>
+                    <div class="text-truncate">
+                      <div class="fw-semibold text-light text-truncate" style="font-size: 0.9rem;">
+                        {{ getExerciseName(selections[currentDayIndex]?.[slot.id]?.exerciseId) }}
+                      </div>
+                      <div class="text-secondary small" style="font-size: 0.75rem;">
+                        {{ getExerciseMuscle(selections[currentDayIndex]?.[slot.id]?.exerciseId) }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button class="btn btn-outline-secondary btn-sm text-nowrap rounded-3 py-1 px-2" style="font-size: 0.8rem;" (click)="openSearchModal(slot)">
+                    <i class="bi bi-search"></i> Cambiar
+                  </button>
+                </div>
+
+                <!-- Sets & Reps Inputs -->
+                <div class="row g-2 mt-1">
+                  <div class="col-6">
+                    <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Series</label>
+                    <div class="input-group input-group-sm">
+                      <button class="btn btn-outline-secondary" type="button" (click)="adjustSets(slot.id, -1)">-</button>
+                      <input 
+                        type="number" 
+                        class="form-control text-center" 
+                        [ngModel]="selections[currentDayIndex]?.[slot.id]?.sets || slot.defaultSets" 
+                        (ngModelChange)="updateSlotSets(slot.id, $event)"
+                      >
+                      <button class="btn btn-outline-secondary" type="button" (click)="adjustSets(slot.id, 1)">+</button>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Repeticiones</label>
                     <input 
-                      type="number" 
-                      class="form-control text-center" 
-                      [ngModel]="selections[currentDayIndex]?.[slot.id]?.sets || slot.defaultSets" 
-                      (ngModelChange)="updateSlotSets(slot.id, $event)"
+                      type="text" 
+                      class="form-control form-control-sm text-center" 
+                      [ngModel]="selections[currentDayIndex]?.[slot.id]?.repsRange || slot.defaultReps" 
+                      (ngModelChange)="updateSlotReps(slot.id, $event)"
+                      placeholder="8-12"
                     >
-                    <button class="btn btn-outline-secondary" type="button" (click)="adjustSets(slot.id, 1)">+</button>
                   </div>
-                </div>
-                <div class="col-6">
-                  <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Repeticiones</label>
-                  <input 
-                    type="text" 
-                    class="form-control form-control-sm text-center" 
-                    [ngModel]="selections[currentDayIndex]?.[slot.id]?.repsRange || slot.defaultReps" 
-                    (ngModelChange)="updateSlotReps(slot.id, $event)"
-                    placeholder="8-12"
-                  >
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </ng-container>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: 100% CUSTOM ROUTINE CREATOR        -->
+        <!-- ========================================== -->
+        <ng-container *ngIf="generatorMode === 'custom'">
+          <!-- Custom Day Navigation Tabs -->
+          <ul class="nav nav-tabs mb-4 border-0 gap-2 flex-wrap">
+            <li class="nav-item" *ngFor="let day of activeCustomDays; let i = index">
+              <button 
+                type="button"
+                class="day-tab-btn btn btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0" 
+                [class.active-day-tab]="currentCustomDayIndex === i"
+                (click)="currentCustomDayIndex = i"
+              >
+                <span class="badge" [ngClass]="currentCustomDayIndex === i ? 'bg-success text-dark fw-bold' : 'bg-dark text-secondary border border-secondary'">
+                  Día {{ i + 1 }}
+                </span>
+                <span class="text-truncate small fw-semibold" style="max-width: 140px;">
+                  {{ day.name || 'Sin Título' }}
+                </span>
+                <span class="badge rounded-pill bg-dark text-secondary border border-secondary" style="font-size: 0.65rem;">
+                  {{ day.exercises.length }}
+                </span>
+              </button>
+            </li>
+          </ul>
+
+          <!-- Current Custom Day Header & Name Editor -->
+          <div class="card p-3 p-md-4 rounded-4 border-0 panel-card mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+              <div class="flex-grow-1" style="max-width: 500px;">
+                <label class="form-label text-secondary small fw-medium mb-1">
+                  Nombre personalizado del Día {{ currentCustomDayIndex + 1 }}
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-secondary">
+                    <i class="bi bi-tag-fill text-success"></i>
+                  </span>
+                  <input 
+                    type="text" 
+                    class="form-control rounded-end-3" 
+                    [(ngModel)]="activeCustomDays[currentCustomDayIndex].name" 
+                    placeholder="Ej: Glúteos & Isquios, Brazos, Hombros..."
+                  >
+                </div>
+              </div>
+
+              <div>
+                <button 
+                  type="button" 
+                  class="btn btn-success fw-bold d-flex align-items-center gap-2 px-3 py-2 rounded-3 shadow-sm"
+                  (click)="openCustomSearchModal()"
+                >
+                  <i class="bi bi-plus-circle-fill"></i>
+                  <span>Agregar Ejercicio a este Día</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State for Day with 0 exercises -->
+          <div 
+            *ngIf="activeCustomDays[currentCustomDayIndex].exercises.length === 0" 
+            class="text-center py-5 px-3 rounded-4 panel-card"
+          >
+            <i class="bi bi-card-checklist text-secondary fs-1 mb-3 d-block opacity-50"></i>
+            <h6 class="fw-bold text-light mb-1">Aún no hay ejercicios en este día</h6>
+            <p class="text-secondary small mb-3">Diseña la sesión seleccionando ejercicios del catálogo completo.</p>
+            <button 
+              type="button" 
+              class="btn btn-outline-success btn-sm px-3 rounded-3"
+              (click)="openCustomSearchModal()"
+            >
+              <i class="bi bi-plus-lg me-1"></i> Seleccionar primer ejercicio
+            </button>
+          </div>
+
+          <!-- Custom Exercises List -->
+          <div class="row g-3" *ngIf="activeCustomDays[currentCustomDayIndex].exercises.length > 0">
+            <div 
+              class="col-12" 
+              *ngFor="let exItem of activeCustomDays[currentCustomDayIndex].exercises; let exIdx = index; trackBy: trackByCustomExerciseUid"
+            >
+              <div class="card p-3 rounded-4 border-0 panel-card">
+                <div class="row align-items-center g-3">
+                  <!-- Exercise Number & Thumbnail -->
+                  <div class="col-12 col-md-5 d-flex align-items-center gap-3">
+                    <span class="badge bg-dark text-secondary border border-secondary px-2 py-1 fs-6">
+                      {{ exIdx + 1 }}
+                    </span>
+
+                    <div class="thumb-box flex-shrink-0">
+                      <img 
+                        *ngIf="getExerciseImage(exItem.exerciseId)" 
+                        [src]="getExerciseImage(exItem.exerciseId)" 
+                        class="thumb-img rounded-2" 
+                        alt=""
+                        loading="lazy"
+                      >
+                      <i *ngIf="!getExerciseImage(exItem.exerciseId)" class="bi bi-activity text-success fs-5"></i>
+                    </div>
+
+                    <div class="text-truncate">
+                      <div class="fw-bold text-light text-truncate" style="font-size: 0.95rem;">
+                        {{ getExerciseName(exItem.exerciseId) }}
+                      </div>
+                      <div class="text-secondary small" style="font-size: 0.75rem;">
+                        <span class="badge badge-subtle me-1">{{ getExercisePattern(exItem.exerciseId) }}</span>
+                        <span>{{ getExerciseMuscle(exItem.exerciseId) }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Sets Input -->
+                  <div class="col-6 col-md-3">
+                    <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Series</label>
+                    <div class="input-group input-group-sm">
+                      <button class="btn btn-outline-secondary" type="button" (click)="adjustCustomSets(exIdx, -1)">-</button>
+                      <input 
+                        type="number" 
+                        class="form-control text-center" 
+                        [(ngModel)]="exItem.sets"
+                        min="1"
+                        max="10"
+                      >
+                      <button class="btn btn-outline-secondary" type="button" (click)="adjustCustomSets(exIdx, 1)">+</button>
+                    </div>
+                  </div>
+
+                  <!-- Reps Input -->
+                  <div class="col-6 col-md-2">
+                    <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Repeticiones</label>
+                    <input 
+                      type="text" 
+                      class="form-control form-control-sm text-center" 
+                      [(ngModel)]="exItem.repsRange" 
+                      placeholder="8-12"
+                    >
+                  </div>
+
+                  <!-- Actions: Reorder & Remove -->
+                  <div class="col-12 col-md-2 d-flex justify-content-end gap-1">
+                    <button 
+                      class="btn btn-outline-secondary btn-sm rounded-3 py-1 px-2" 
+                      [disabled]="exIdx === 0" 
+                      (click)="moveCustomExercise(exIdx, -1)"
+                      title="Mover arriba"
+                    >
+                      <i class="bi bi-arrow-up"></i>
+                    </button>
+                    <button 
+                      class="btn btn-outline-secondary btn-sm rounded-3 py-1 px-2" 
+                      [disabled]="exIdx === activeCustomDays[currentCustomDayIndex].exercises.length - 1" 
+                      (click)="moveCustomExercise(exIdx, 1)"
+                      title="Mover abajo"
+                    >
+                      <i class="bi bi-arrow-down"></i>
+                    </button>
+                    <button 
+                      class="btn btn-outline-danger btn-sm rounded-3 py-1 px-2 ms-2" 
+                      (click)="removeCustomExercise(exIdx)"
+                      title="Eliminar ejercicio"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
       </main>
     </div>
 
-    <!-- MODAL: Exercise Selector -->
+    <!-- ========================================== -->
+    <!-- MODAL: Exercise Selector (Used by Both)    -->
+    <!-- ========================================== -->
     <div *ngIf="searchModalVisible" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content border-0 rounded-4 panel-card shadow-2xl">
           <div class="modal-header border-bottom border-dark px-4 py-3">
             <h6 class="modal-title fw-bold text-light mb-0">
-              <i class="bi bi-search text-success me-2"></i>Elegir Ejercicio: {{ activeSearchSlot?.label }}
+              <i class="bi bi-search text-success me-2"></i>
+              <span *ngIf="modalContext === 'preset'">Elegir Ejercicio: {{ activeSearchSlot?.label }}</span>
+              <span *ngIf="modalContext === 'custom'">Agregar Ejercicio a: {{ activeCustomDays[currentCustomDayIndex]?.name }}</span>
             </h6>
             <button type="button" class="btn-close btn-close-white" (click)="closeSearchModal()"></button>
           </div>
@@ -214,7 +458,7 @@ interface SlotSelection {
                     class="form-control" 
                     [(ngModel)]="searchQuery" 
                     (ngModelChange)="onFilterChanged()"
-                    placeholder="Buscar ejercicio por nombre..."
+                    placeholder="Buscar por nombre en español o inglés..."
                   >
                 </div>
               </div>
@@ -226,24 +470,39 @@ interface SlotSelection {
               </div>
             </div>
 
-            <!-- Exercises List -->
+            <!-- Exercises List with GIFs -->
             <div class="list-group list-group-flush gap-1">
               <button 
                 type="button" 
                 class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 rounded-3 border-0"
                 *ngFor="let ex of cachedFilteredExercises; trackBy: trackByExerciseId"
                 [style.background-color]="isSelectedInActiveSlot(ex.id) ? '#18202d' : '#0e1017'"
-                (click)="selectExerciseForSlot(ex.id)"
+                (click)="onExerciseSelected(ex.id)"
               >
-                <div>
-                  <div class="fw-bold text-light small">{{ ex.name_es }}</div>
-                  <div class="text-secondary small" style="font-size: 0.75rem;">
-                    {{ ex.name_en }} &bull; <span class="badge badge-subtle">{{ ex.primary_muscle_es.join(', ') }}</span>
+                <div class="d-flex align-items-center gap-3 overflow-hidden me-2">
+                  <div class="thumb-box flex-shrink-0">
+                    <img 
+                      *ngIf="exercisesService.getImageUrl(ex.img_src || ex.id)" 
+                      [src]="exercisesService.getImageUrl(ex.img_src || ex.id)" 
+                      class="thumb-img rounded-2" 
+                      alt=""
+                      loading="lazy"
+                    >
+                    <i *ngIf="!exercisesService.getImageUrl(ex.img_src || ex.id)" class="bi bi-activity text-secondary fs-5"></i>
+                  </div>
+                  <div class="text-truncate">
+                    <div class="fw-bold text-light small text-truncate">{{ ex.name_es }}</div>
+                    <div class="text-secondary small text-truncate" style="font-size: 0.75rem;">
+                      {{ ex.name_en }} &bull; <span class="badge badge-subtle">{{ ex.primary_muscle_es.join(', ') }}</span>
+                    </div>
                   </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                  <span *ngIf="isSelectedInActiveSlot(ex.id)" class="badge bg-success text-dark fw-bold">Actual</span>
-                  <span class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">Elegir</span>
+
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                  <span *ngIf="modalContext === 'preset' && isSelectedInActiveSlot(ex.id)" class="badge bg-success text-dark fw-bold">Actual</span>
+                  <span class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                    {{ modalContext === 'custom' ? '+ Agregar' : 'Elegir' }}
+                  </span>
                 </div>
               </button>
 
@@ -264,6 +523,20 @@ interface SlotSelection {
       background-color: #0d0f14;
       border: 1px solid rgba(255, 255, 255, 0.06) !important;
     }
+    .mode-pill-btn {
+      background: transparent;
+      color: #718096;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      &:hover {
+        color: #e2e8f0;
+      }
+    }
+    .active-mode {
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: #fff !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    }
     .day-tab-btn {
       background: rgba(255, 255, 255, 0.03);
       color: #a0aec0;
@@ -278,6 +551,22 @@ interface SlotSelection {
       background: rgba(0, 230, 118, 0.08) !important;
       color: #00e676 !important;
       border-color: rgba(0, 230, 118, 0.3) !important;
+    }
+    .thumb-box {
+      width: 48px;
+      height: 48px;
+      background: #11141c;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .thumb-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     .badge-pattern {
       background: rgba(255, 255, 255, 0.06);
@@ -301,18 +590,26 @@ interface SlotSelection {
 export class RoutineGeneratorComponent implements OnInit {
   private auth = inject(AuthService);
   private routineService = inject(RoutineService);
-  private exercisesService = inject(ExercisesService);
+  exercisesService = inject(ExercisesService);
+
+  // Generator Mode: 'preset' = Biomechanical, 'custom' = Free Custom Routine
+  generatorMode: 'preset' | 'custom' = 'preset';
 
   routineName = 'Rutina Personalizada Pro';
   routineCode = '';
-  daysCount = 4;
   goal = 'hypertrophy';
-  currentDayIndex = 0;
 
-  // Stored state (NOT getters) to prevent infinite change detection
+  // Preset Mode State
+  daysCount = 4;
+  currentDayIndex = 0;
   dayTypes: SplitDayType[] = [];
   currentSlots: SlotConfig[] = [];
   selections: Record<number, Record<string, SlotSelection>> = {};
+
+  // Custom Mode State
+  customDaysCount = 3;
+  currentCustomDayIndex = 0;
+  customDays: CustomDayPlan[] = [];
 
   isSaving = false;
   successMessage = '';
@@ -320,6 +617,7 @@ export class RoutineGeneratorComponent implements OnInit {
 
   // Modal & Search
   searchModalVisible = false;
+  modalContext: 'preset' | 'custom' = 'preset';
   activeSearchSlot: SlotConfig | null = null;
   searchQuery = '';
   selectedMuscleFilter = 'all';
@@ -329,9 +627,18 @@ export class RoutineGeneratorComponent implements OnInit {
   ngOnInit(): void {
     this.routineCode = this.routineService.generateRandomCode();
     this.availableMuscles = this.exercisesService.getMuscles();
+    
+    // Initialize Preset Split
     this.computeDayTypes();
     this.initializeDefaultSelections();
     this.updateCurrentSlots();
+
+    // Initialize Custom Days Plans
+    this.initializeCustomDays();
+  }
+
+  setGeneratorMode(mode: 'preset' | 'custom'): void {
+    this.generatorMode = mode;
   }
 
   regenerateCode(): void {
@@ -346,6 +653,79 @@ export class RoutineGeneratorComponent implements OnInit {
     return ex.id;
   }
 
+  trackByCustomExerciseUid(index: number, item: CustomExerciseItem): string {
+    return item.uid;
+  }
+
+  // ==========================================
+  // CUSTOM MODE LOGIC
+  // ==========================================
+  private initializeCustomDays(): void {
+    const defaultDayNames = [
+      'Glúteos & Isquios',
+      'Brazos & Hombros',
+      'Espalda & Pecho',
+      'Cuádriceps & Gemelos',
+      'Torso Potencia',
+      'Pierna Hipertrofia',
+      'Core & Acondicionamiento'
+    ];
+
+    this.customDays = [];
+    for (let i = 0; i < 7; i++) {
+      this.customDays.push({
+        name: defaultDayNames[i] || `Día ${i + 1}`,
+        exercises: []
+      });
+    }
+  }
+
+  get activeCustomDays(): CustomDayPlan[] {
+    return this.customDays.slice(0, this.customDaysCount);
+  }
+
+  onCustomDaysCountChange(): void {
+    if (this.currentCustomDayIndex >= this.customDaysCount) {
+      this.currentCustomDayIndex = 0;
+    }
+  }
+
+  adjustCustomSets(exIdx: number, delta: number): void {
+    const exItem = this.activeCustomDays[this.currentCustomDayIndex]?.exercises[exIdx];
+    if (exItem) {
+      exItem.sets = Math.max(1, Math.min(10, (exItem.sets || 3) + delta));
+    }
+  }
+
+  moveCustomExercise(exIdx: number, direction: number): void {
+    const list = this.activeCustomDays[this.currentCustomDayIndex]?.exercises;
+    if (!list) return;
+    const targetIdx = exIdx + direction;
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+    const temp = list[exIdx];
+    list[exIdx] = list[targetIdx];
+    list[targetIdx] = temp;
+  }
+
+  removeCustomExercise(exIdx: number): void {
+    const list = this.activeCustomDays[this.currentCustomDayIndex]?.exercises;
+    if (list) {
+      list.splice(exIdx, 1);
+    }
+  }
+
+  openCustomSearchModal(): void {
+    this.modalContext = 'custom';
+    this.activeSearchSlot = null;
+    this.searchQuery = '';
+    this.selectedMuscleFilter = 'all';
+    this.onFilterChanged();
+    this.searchModalVisible = true;
+  }
+
+  // ==========================================
+  // PRESET SPLIT LOGIC
+  // ==========================================
   onDaysCountChange(): void {
     if (this.currentDayIndex >= this.daysCount) {
       this.currentDayIndex = 0;
@@ -479,6 +859,17 @@ export class RoutineGeneratorComponent implements OnInit {
     return ex ? ex.primary_muscle_es.join(', ') : '';
   }
 
+  getExercisePattern(id?: string): string {
+    if (!id) return '';
+    const ex = this.exercisesService.getById(id);
+    return ex?.movement_pattern || '';
+  }
+
+  getExerciseImage(id?: string): string {
+    if (!id) return '';
+    return this.exercisesService.getImageUrl(id);
+  }
+
   adjustSets(slotId: string, delta: number): void {
     const cur = this.selections[this.currentDayIndex]?.[slotId];
     if (cur) {
@@ -497,6 +888,7 @@ export class RoutineGeneratorComponent implements OnInit {
   }
 
   openSearchModal(slot: SlotConfig): void {
+    this.modalContext = 'preset';
     this.activeSearchSlot = slot;
     this.searchQuery = '';
     this.selectedMuscleFilter = 'all';
@@ -510,10 +902,11 @@ export class RoutineGeneratorComponent implements OnInit {
   }
 
   onFilterChanged(): void {
+    const pattern = this.modalContext === 'preset' ? this.activeSearchSlot?.movementPattern : undefined;
     this.cachedFilteredExercises = this.exercisesService.search(
       this.searchQuery, 
       this.selectedMuscleFilter, 
-      this.activeSearchSlot?.movementPattern
+      pattern
     );
   }
 
@@ -522,23 +915,38 @@ export class RoutineGeneratorComponent implements OnInit {
     return this.selections[this.currentDayIndex]?.[this.activeSearchSlot.id]?.exerciseId === id;
   }
 
-  selectExerciseForSlot(id: string): void {
-    if (!this.activeSearchSlot) return;
-    const slotId = this.activeSearchSlot.id;
-    if (!this.selections[this.currentDayIndex]) {
-      this.selections[this.currentDayIndex] = {};
-    }
-    const cur = this.selections[this.currentDayIndex][slotId];
-    if (cur) {
-      cur.exerciseId = id;
+  onExerciseSelected(id: string): void {
+    if (this.modalContext === 'preset') {
+      if (!this.activeSearchSlot) return;
+      const slotId = this.activeSearchSlot.id;
+      if (!this.selections[this.currentDayIndex]) {
+        this.selections[this.currentDayIndex] = {};
+      }
+      const cur = this.selections[this.currentDayIndex][slotId];
+      if (cur) {
+        cur.exerciseId = id;
+      } else {
+        this.selections[this.currentDayIndex][slotId] = {
+          exerciseId: id,
+          sets: this.activeSearchSlot.defaultSets,
+          repsRange: this.activeSearchSlot.defaultReps
+        };
+      }
+      this.closeSearchModal();
     } else {
-      this.selections[this.currentDayIndex][slotId] = {
-        exerciseId: id,
-        sets: this.activeSearchSlot.defaultSets,
-        repsRange: this.activeSearchSlot.defaultReps
-      };
+      // Custom mode: append exercise to active custom day
+      const targetDay = this.activeCustomDays[this.currentCustomDayIndex];
+      if (targetDay) {
+        targetDay.exercises.push({
+          uid: 'ex_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+          exerciseId: id,
+          sets: 3,
+          repsRange: '8-12',
+          isFinisher: false
+        });
+      }
+      this.closeSearchModal();
     }
-    this.closeSearchModal();
   }
 
   async saveRoutine(): Promise<void> {
@@ -553,39 +961,108 @@ export class RoutineGeneratorComponent implements OnInit {
     this.errorMessage = '';
 
     try {
-      const daysData = [];
-      for (let d = 0; d < this.daysCount; d++) {
-        const dayType = this.dayTypes[d] || 'torso';
-        const slots = this.getBaseSlotsForDay(d, dayType, this.daysCount);
-        const dayExercises = [];
+      let daysData: any[] = [];
+      const effectiveDaysCount = this.generatorMode === 'custom' ? this.customDaysCount : this.daysCount;
 
-        for (const slot of slots) {
-          const sel = this.selections[d]?.[slot.id];
-          if (sel && sel.exerciseId) {
-            const exInfo = this.exercisesService.getById(sel.exerciseId);
-            dayExercises.push({
-              exerciseId: sel.exerciseId,
-              exerciseName: exInfo?.name_es || sel.exerciseId,
-              sets: sel.sets,
-              reps: sel.repsRange,
-              movementPattern: slot.movementPattern,
-              isFinisher: slot.isFinisher || false
-            });
-          }
+      if (this.generatorMode === 'custom') {
+        const activeDays = this.activeCustomDays;
+        const totalExercises = activeDays.reduce((acc, d) => acc + d.exercises.length, 0);
+        if (totalExercises === 0) {
+          throw new Error('Debes agregar al menos un ejercicio en alguno de los días de la rutina.');
         }
 
-        daysData.push({
-          dayIndex: d + 1,
-          name: `Día ${d + 1}: ${dayType.toUpperCase()}`,
-          type: dayType,
-          exercises: dayExercises
+        daysData = activeDays.map((d, i) => {
+          const exIds = d.exercises.map(e => e.exerciseId);
+          const muscles = this.exercisesService.getMusclesForExercises(exIds);
+          const dayName = d.name.trim() || `Día ${i + 1}`;
+
+          return {
+            dayIndex: i, // 0-indexed for full mobile app compatibility
+            name: dayName,
+            dayType: dayName,
+            muscles,
+            exercises: d.exercises.map(e => {
+              const exInfo = this.exercisesService.getById(e.exerciseId);
+              return {
+                id: e.exerciseId,
+                exerciseId: e.exerciseId,
+                name_es: exInfo?.name_es || e.exerciseId,
+                name_en: exInfo?.name_en || e.exerciseId,
+                sets: e.sets || 3,
+                reps: e.repsRange || '8-12',
+                repsRange: e.repsRange || '8-12',
+                movementPattern: exInfo?.movement_pattern || 'custom',
+                isFinisher: e.isFinisher || false,
+                primary_es: exInfo?.primary_muscle_es || [],
+                primary_en: exInfo?.primary_muscle_en ? (Array.isArray(exInfo.primary_muscle_en) ? exInfo.primary_muscle_en : [exInfo.primary_muscle_en]) : [],
+                secondary_es: exInfo?.secondary_muscles_es || [],
+                secondary_en: exInfo?.secondary_muscles_en || [],
+                isCompound: exInfo?.is_compound ?? false,
+                isIsolation: exInfo?.is_isolation ?? true,
+                equipment_es: exInfo?.equipment_es || [],
+                equipment_en: exInfo?.equipment_en || []
+              };
+            })
+          };
         });
+      } else {
+        // Preset Biomechanical Split
+        for (let d = 0; d < this.daysCount; d++) {
+          const dayType = this.dayTypes[d] || 'torso';
+          const slots = this.getBaseSlotsForDay(d, dayType, this.daysCount);
+          const dayExercises: any[] = [];
+          const exIds: string[] = [];
+
+          for (const slot of slots) {
+            const sel = this.selections[d]?.[slot.id];
+            if (sel && sel.exerciseId) {
+              exIds.push(sel.exerciseId);
+              const exInfo = this.exercisesService.getById(sel.exerciseId);
+              dayExercises.push({
+                id: sel.exerciseId,
+                exerciseId: sel.exerciseId,
+                name_es: exInfo?.name_es || sel.exerciseId,
+                name_en: exInfo?.name_en || sel.exerciseId,
+                sets: sel.sets,
+                reps: sel.repsRange,
+                repsRange: sel.repsRange,
+                movementPattern: slot.movementPattern,
+                isFinisher: slot.isFinisher || false,
+                primary_es: exInfo?.primary_muscle_es || [],
+                primary_en: exInfo?.primary_muscle_en ? (Array.isArray(exInfo.primary_muscle_en) ? exInfo.primary_muscle_en : [exInfo.primary_muscle_en]) : [],
+                secondary_es: exInfo?.secondary_muscles_es || [],
+                secondary_en: exInfo?.secondary_muscles_en || [],
+                isCompound: exInfo?.is_compound ?? false,
+                isIsolation: exInfo?.is_isolation ?? true,
+                equipment_es: exInfo?.equipment_es || [],
+                equipment_en: exInfo?.equipment_en || []
+              });
+            }
+          }
+
+          const muscles = this.exercisesService.getMusclesForExercises(exIds);
+          const capitalizedType = dayType.charAt(0).toUpperCase() + dayType.slice(1);
+
+          daysData.push({
+            dayIndex: d, // 0-indexed for full mobile app compatibility
+            name: `Día ${d + 1}: ${capitalizedType}`,
+            dayType: capitalizedType,
+            muscles,
+            exercises: dayExercises
+          });
+        }
       }
 
       const routinePayload = {
         name: this.routineName,
         goal: this.goal,
-        daysCount: this.daysCount,
+        splitMode: this.generatorMode,
+        daysCount: effectiveDaysCount,
+        config: {
+          days: effectiveDaysCount,
+          goal: this.goal,
+          level: 'intermediate'
+        },
         days: daysData
       };
 
