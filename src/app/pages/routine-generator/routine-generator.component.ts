@@ -38,6 +38,14 @@ interface CustomDayPlan {
   exercises: CustomExerciseItem[];
 }
 
+interface ManualExerciseForm {
+  name: string;
+  muscle: string;
+  pattern: string;
+  sets: number;
+  reps: string;
+}
+
 @Component({
   selector: 'app-routine-generator',
   standalone: true,
@@ -213,8 +221,9 @@ interface CustomDayPlan {
                         loading="lazy"
                       >
                       <div *ngIf="!getExerciseImage(selections[currentDayIndex]?.[slot.id]?.exerciseId)" class="text-center p-3 text-secondary">
-                        <i class="bi bi-activity text-success fs-1 d-block mb-1"></i>
-                        <span class="small" style="font-size: 0.75rem;">Sin animación</span>
+                        <i class="bi bi-shield-check text-success fs-1 d-block mb-1"></i>
+                        <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary mb-1">Manual</span>
+                        <span class="small d-block text-secondary" style="font-size: 0.72rem;">Sin animación</span>
                       </div>
                     </div>
                   </div>
@@ -331,7 +340,7 @@ interface CustomDayPlan {
           >
             <i class="bi bi-card-checklist text-secondary fs-1 mb-3 d-block opacity-50"></i>
             <h6 class="fw-bold text-light mb-1">Aún no hay ejercicios en este día</h6>
-            <p class="text-secondary small mb-3">Haz clic en "+ Agregar Ejercicio a este Día" para elegir del catálogo con animaciones GIF.</p>
+            <p class="text-secondary small mb-3">Haz clic en "+ Agregar Ejercicio a este Día" para elegir del catálogo o crear ejercicios manuales.</p>
             <button 
               type="button" 
               class="btn btn-outline-success btn-sm px-3 rounded-3"
@@ -362,8 +371,9 @@ interface CustomDayPlan {
                         loading="lazy"
                       >
                       <div *ngIf="!getExerciseImage(exItem.exerciseId)" class="text-center p-3 text-secondary">
-                        <i class="bi bi-activity text-success fs-1 d-block mb-1"></i>
-                        <span class="small" style="font-size: 0.75rem;">Sin animación</span>
+                        <i class="bi bi-shield-check text-success fs-1 d-block mb-1"></i>
+                        <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary mb-1">Manual</span>
+                        <span class="small d-block text-secondary" style="font-size: 0.72rem;">Sin animación</span>
                       </div>
                     </div>
                   </div>
@@ -449,85 +459,181 @@ interface CustomDayPlan {
     </div>
 
     <!-- ========================================== -->
-    <!-- MODAL: Exercise Selector (Used by Both)    -->
+    <!-- MODAL: Exercise Selector & Custom Creator  -->
     <!-- ========================================== -->
     <div *ngIf="searchModalVisible" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content border-0 rounded-4 panel-card shadow-2xl">
-          <div class="modal-header border-bottom border-dark px-4 py-3">
-            <h6 class="modal-title fw-bold text-light mb-0">
-              <i class="bi bi-search text-success me-2"></i>
-              <span *ngIf="modalContext === 'preset'">Elegir Ejercicio: {{ activeSearchSlot?.label }}</span>
-              <span *ngIf="modalContext === 'custom'">Agregar Ejercicio a: {{ activeCustomDays[currentCustomDayIndex]?.name }}</span>
-            </h6>
+          <!-- Modal Header with Navigation Tabs -->
+          <div class="modal-header border-bottom border-dark px-4 py-3 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+              <button 
+                type="button" 
+                class="btn btn-sm rounded-3 px-3 py-1 fw-semibold d-flex align-items-center gap-1"
+                [ngClass]="modalTab === 'search' ? 'btn-success text-dark' : 'btn-outline-secondary'"
+                (click)="modalTab = 'search'"
+              >
+                <i class="bi bi-search"></i> Catálogo BeStrong
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-sm rounded-3 px-3 py-1 fw-semibold d-flex align-items-center gap-1"
+                [ngClass]="modalTab === 'create' ? 'btn-success text-dark' : 'btn-outline-secondary'"
+                (click)="modalTab = 'create'"
+              >
+                <i class="bi bi-plus-circle"></i> Crear Ejercicio Manual
+              </button>
+            </div>
             <button type="button" class="btn-close btn-close-white" (click)="closeSearchModal()"></button>
           </div>
+
           <div class="modal-body p-4">
-            <!-- Search & Filter inputs -->
-            <div class="row g-2 mb-3">
-              <div class="col-12 col-md-8">
-                <div class="input-group">
-                  <span class="input-group-text bg-dark border-secondary text-secondary">
-                    <i class="bi bi-search"></i>
-                  </span>
+            <!-- TAB 1: Search & Pick from Catalogue -->
+            <div *ngIf="modalTab === 'search'">
+              <!-- Search & Filter inputs -->
+              <div class="row g-2 mb-3">
+                <div class="col-12 col-md-8">
+                  <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary">
+                      <i class="bi bi-search"></i>
+                    </span>
+                    <input 
+                      type="text" 
+                      class="form-control" 
+                      [(ngModel)]="searchQuery" 
+                      (ngModelChange)="onFilterChanged()"
+                      placeholder="Buscar por nombre en español o inglés..."
+                    >
+                  </div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <select class="form-select" [(ngModel)]="selectedMuscleFilter" (ngModelChange)="onFilterChanged()">
+                    <option value="all">Todos los músculos</option>
+                    <option *ngFor="let m of availableMuscles" [value]="m">{{ m }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Exercises List with Enhanced GIFs -->
+              <div class="list-group list-group-flush gap-1">
+                <button 
+                  type="button" 
+                  class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 rounded-3 border-0"
+                  *ngFor="let ex of cachedFilteredExercises; trackBy: trackByExerciseId"
+                  [style.background-color]="isSelectedInActiveSlot(ex.id) ? '#18202d' : '#0e1017'"
+                  (click)="onExerciseSelected(ex.id)"
+                >
+                  <div class="d-flex align-items-center gap-3 overflow-hidden me-2">
+                    <div class="modal-thumb-box flex-shrink-0">
+                      <img 
+                        *ngIf="exercisesService.getImageUrl(ex.img_src || ex.id)" 
+                        [src]="exercisesService.getImageUrl(ex.img_src || ex.id)" 
+                        class="modal-thumb-img rounded-2" 
+                        alt=""
+                        loading="lazy"
+                      >
+                      <i *ngIf="!exercisesService.getImageUrl(ex.img_src || ex.id)" class="bi bi-shield-check text-success fs-4"></i>
+                    </div>
+                    <div class="text-truncate">
+                      <div class="fw-bold text-light small text-truncate">{{ ex.name_es }}</div>
+                      <div class="text-secondary small text-truncate" style="font-size: 0.75rem;">
+                        {{ ex.name_en }} &bull; <span class="badge badge-subtle">{{ ex.primary_muscle_es.join(', ') }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <span *ngIf="modalContext === 'preset' && isSelectedInActiveSlot(ex.id)" class="badge bg-success text-dark fw-bold">Actual</span>
+                    <span class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                      {{ modalContext === 'custom' ? '+ Agregar' : 'Elegir' }}
+                    </span>
+                  </div>
+                </button>
+
+                <div *ngIf="cachedFilteredExercises.length === 0" class="text-center py-5 text-secondary small">
+                  <p class="mb-2">No se encontraron ejercicios en el catálogo para "{{ searchQuery }}".</p>
+                  <button type="button" class="btn btn-outline-success btn-sm rounded-3 px-3 py-2" (click)="switchToCreateManual(searchQuery)">
+                    <i class="bi bi-plus-lg me-1"></i> Crear "{{ searchQuery }}" como Ejercicio Manual
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: Create Manual / Custom Exercise -->
+            <div *ngIf="modalTab === 'create'" class="py-2">
+              <div class="alert alert-dark border border-secondary border-opacity-25 rounded-3 p-3 mb-4 small text-secondary">
+                <div class="d-flex gap-2">
+                  <i class="bi bi-info-circle-fill text-success fs-5 flex-shrink-0"></i>
+                  <div>
+                    <strong class="text-light">Ejercicio Personalizado:</strong> Puedes crear cualquier ejercicio no registrado en el sistema. Se guardará directamente en tu rutina y se sincronizará con la app móvil (sin necesidad de imágenes).
+                  </div>
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label text-secondary small fw-medium mb-1">Nombre del Ejercicio *</label>
                   <input 
                     type="text" 
                     class="form-control" 
-                    [(ngModel)]="searchQuery" 
-                    (ngModelChange)="onFilterChanged()"
-                    placeholder="Buscar por nombre en español o inglés..."
+                    [(ngModel)]="manualExerciseForm.name" 
+                    placeholder="Ej: Prensa Inclinada Unilateral, Sentadilla Búlgara en Smith..."
                   >
                 </div>
-              </div>
-              <div class="col-12 col-md-4">
-                <select class="form-select" [(ngModel)]="selectedMuscleFilter" (ngModelChange)="onFilterChanged()">
-                  <option value="all">Todos los músculos</option>
-                  <option *ngFor="let m of availableMuscles" [value]="m">{{ m }}</option>
-                </select>
-              </div>
-            </div>
 
-            <!-- Exercises List with Enhanced GIFs -->
-            <div class="list-group list-group-flush gap-1">
-              <button 
-                type="button" 
-                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 rounded-3 border-0"
-                *ngFor="let ex of cachedFilteredExercises; trackBy: trackByExerciseId"
-                [style.background-color]="isSelectedInActiveSlot(ex.id) ? '#18202d' : '#0e1017'"
-                (click)="onExerciseSelected(ex.id)"
-              >
-                <div class="d-flex align-items-center gap-3 overflow-hidden me-2">
-                  <div class="modal-thumb-box flex-shrink-0">
-                    <img 
-                      *ngIf="exercisesService.getImageUrl(ex.img_src || ex.id)" 
-                      [src]="exercisesService.getImageUrl(ex.img_src || ex.id)" 
-                      class="modal-thumb-img rounded-2" 
-                      alt=""
-                      loading="lazy"
-                    >
-                    <i *ngIf="!exercisesService.getImageUrl(ex.img_src || ex.id)" class="bi bi-activity text-secondary fs-4"></i>
-                  </div>
-                  <div class="text-truncate">
-                    <div class="fw-bold text-light small text-truncate">{{ ex.name_es }}</div>
-                    <div class="text-secondary small text-truncate" style="font-size: 0.75rem;">
-                      {{ ex.name_en }} &bull; <span class="badge badge-subtle">{{ ex.primary_muscle_es.join(', ') }}</span>
-                    </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label text-secondary small fw-medium mb-1">Grupo Muscular Principal</label>
+                  <select class="form-select" [(ngModel)]="manualExerciseForm.muscle">
+                    <option *ngFor="let m of availableMuscles" [value]="m">{{ m }}</option>
+                  </select>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label text-secondary small fw-medium mb-1">Patrón / Tipo de Movimiento</label>
+                  <select class="form-select" [(ngModel)]="manualExerciseForm.pattern">
+                    <option value="custom">General / Personalizado</option>
+                    <option value="horizontal_push">Empuje Pecho</option>
+                    <option value="vertical_push">Empuje Hombros</option>
+                    <option value="horizontal_pull">Jalón / Remo Espalda</option>
+                    <option value="vertical_pull">Jalón Dorsal</option>
+                    <option value="squat">Sentadilla / Cuádriceps</option>
+                    <option value="hinge">Bisagra / Isquiotibiales</option>
+                    <option value="hip_thrust">Glúteos (Hip Thrust)</option>
+                    <option value="elbow_flexion">Bíceps (Flexión codo)</option>
+                    <option value="elbow_extension">Tríceps (Extensión codo)</option>
+                    <option value="core">Abdomen / Core</option>
+                    <option value="calf_raise">Gemelos</option>
+                  </select>
+                </div>
+
+                <div class="col-6">
+                  <label class="form-label text-secondary small mb-1">Series por Defecto</label>
+                  <div class="input-group">
+                    <button class="btn btn-outline-secondary" type="button" (click)="adjustManualSets(-1)">-</button>
+                    <input type="number" class="form-control text-center" [(ngModel)]="manualExerciseForm.sets" min="1" max="10">
+                    <button class="btn btn-outline-secondary" type="button" (click)="adjustManualSets(1)">+</button>
                   </div>
                 </div>
 
-                <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                  <span *ngIf="modalContext === 'preset' && isSelectedInActiveSlot(ex.id)" class="badge bg-success text-dark fw-bold">Actual</span>
-                  <span class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
-                    {{ modalContext === 'custom' ? '+ Agregar' : 'Elegir' }}
-                  </span>
+                <div class="col-6">
+                  <label class="form-label text-secondary small mb-1">Rango de Repeticiones</label>
+                  <input type="text" class="form-control text-center" [(ngModel)]="manualExerciseForm.reps" placeholder="8-12">
                 </div>
-              </button>
 
-              <div *ngIf="cachedFilteredExercises.length === 0" class="text-center py-5 text-secondary small">
-                No se encontraron ejercicios con ese criterio.
+                <div class="col-12 mt-4 text-end">
+                  <button 
+                    type="button" 
+                    class="btn btn-success fw-bold px-4 py-2 rounded-3"
+                    [disabled]="!manualExerciseForm.name.trim()"
+                    (click)="saveAndAddManualExercise()"
+                  >
+                    <i class="bi bi-check2-circle me-1"></i> Guardar y Agregar a la Rutina
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+
           <div class="modal-footer border-top border-dark px-4 py-2">
             <button type="button" class="btn btn-secondary btn-sm" (click)="closeSearchModal()">Cerrar</button>
           </div>
@@ -668,8 +774,9 @@ export class RoutineGeneratorComponent implements OnInit {
   successMessage = '';
   errorMessage = '';
 
-  // Modal & Search
+  // Modal & Search & Create Manual
   searchModalVisible = false;
+  modalTab: 'search' | 'create' = 'search';
   modalContext: 'preset' | 'custom' = 'preset';
   activeSearchSlot: SlotConfig | null = null;
   searchQuery = '';
@@ -677,9 +784,21 @@ export class RoutineGeneratorComponent implements OnInit {
   availableMuscles: string[] = [];
   cachedFilteredExercises: Exercise[] = [];
 
+  // Manual Exercise Form State
+  manualExerciseForm: ManualExerciseForm = {
+    name: '',
+    muscle: 'Pierna',
+    pattern: 'custom',
+    sets: 3,
+    reps: '8-12'
+  };
+
   ngOnInit(): void {
     this.routineCode = this.routineService.generateRandomCode();
     this.availableMuscles = this.exercisesService.getMuscles();
+    if (this.availableMuscles.length > 0) {
+      this.manualExerciseForm.muscle = this.availableMuscles[0];
+    }
     
     // Initialize Preset Split
     this.computeDayTypes();
@@ -765,6 +884,7 @@ export class RoutineGeneratorComponent implements OnInit {
 
   openCustomSearchModal(): void {
     this.modalContext = 'custom';
+    this.modalTab = 'search';
     this.activeSearchSlot = null;
     this.searchQuery = '';
     this.selectedMuscleFilter = 'all';
@@ -911,7 +1031,7 @@ export class RoutineGeneratorComponent implements OnInit {
   getExercisePattern(id?: string): string {
     if (!id) return '';
     const ex = this.exercisesService.getById(id);
-    return ex?.movement_pattern || '';
+    return ex?.movement_pattern || 'Personalizado';
   }
 
   getExerciseImage(id?: string): string {
@@ -938,6 +1058,7 @@ export class RoutineGeneratorComponent implements OnInit {
 
   openSearchModal(slot: SlotConfig): void {
     this.modalContext = 'preset';
+    this.modalTab = 'search';
     this.activeSearchSlot = slot;
     this.searchQuery = '';
     this.selectedMuscleFilter = 'all';
@@ -998,6 +1119,67 @@ export class RoutineGeneratorComponent implements OnInit {
     }
   }
 
+  // ==========================================
+  // MANUAL EXERCISE CREATION
+  // ==========================================
+  switchToCreateManual(initialName?: string): void {
+    this.manualExerciseForm.name = initialName || '';
+    this.modalTab = 'create';
+  }
+
+  adjustManualSets(delta: number): void {
+    this.manualExerciseForm.sets = Math.max(1, Math.min(10, (this.manualExerciseForm.sets || 3) + delta));
+  }
+
+  saveAndAddManualExercise(): void {
+    const cleanName = this.manualExerciseForm.name.trim();
+    if (!cleanName) return;
+
+    const customId = 'manual_' + Date.now();
+    const newEx: Exercise = {
+      id: customId,
+      name_es: cleanName,
+      name_en: cleanName,
+      primary_muscle_es: [this.manualExerciseForm.muscle || 'General'],
+      movement_pattern: this.manualExerciseForm.pattern || 'custom',
+      is_compound: false,
+      is_isolation: true,
+      equipment_es: ['Libre'],
+      difficulty: 'medium'
+    };
+
+    // Register in memory store
+    this.exercisesService.registerCustomExercise(newEx);
+
+    if (this.modalContext === 'preset' && this.activeSearchSlot) {
+      const slotId = this.activeSearchSlot.id;
+      if (!this.selections[this.currentDayIndex]) {
+        this.selections[this.currentDayIndex] = {};
+      }
+      this.selections[this.currentDayIndex][slotId] = {
+        exerciseId: customId,
+        sets: this.manualExerciseForm.sets || 3,
+        repsRange: this.manualExerciseForm.reps || '8-12'
+      };
+    } else {
+      const targetDay = this.activeCustomDays[this.currentCustomDayIndex];
+      if (targetDay) {
+        targetDay.exercises.push({
+          uid: 'ex_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+          exerciseId: customId,
+          sets: this.manualExerciseForm.sets || 3,
+          repsRange: this.manualExerciseForm.reps || '8-12',
+          isFinisher: false
+        });
+      }
+    }
+
+    // Reset form and close
+    this.manualExerciseForm.name = '';
+    this.modalTab = 'search';
+    this.closeSearchModal();
+  }
+
   async saveRoutine(): Promise<void> {
     const user = this.auth.currentUser();
     if (!user) {
@@ -1036,20 +1218,22 @@ export class RoutineGeneratorComponent implements OnInit {
                 id: e.exerciseId,
                 exerciseId: e.exerciseId,
                 name_es: exInfo?.name_es || e.exerciseId,
-                name_en: exInfo?.name_en || e.exerciseId,
+                name_en: exInfo?.name_en || exInfo?.name_es || e.exerciseId,
+                exerciseName: exInfo?.name_es || e.exerciseId,
+                name: exInfo?.name_es || e.exerciseId,
                 sets: e.sets || 3,
                 reps: e.repsRange || '8-12',
                 repsRange: e.repsRange || '8-12',
                 movementPattern: exInfo?.movement_pattern || 'custom',
                 isFinisher: e.isFinisher || false,
-                primary_es: exInfo?.primary_muscle_es || [],
-                primary_en: exInfo?.primary_muscle_en ? (Array.isArray(exInfo.primary_muscle_en) ? exInfo.primary_muscle_en : [exInfo.primary_muscle_en]) : [],
+                primary_es: exInfo?.primary_muscle_es || ['General'],
+                primary_en: exInfo?.primary_muscle_en ? (Array.isArray(exInfo.primary_muscle_en) ? exInfo.primary_muscle_en : [exInfo.primary_muscle_en]) : ['General'],
                 secondary_es: exInfo?.secondary_muscles_es || [],
                 secondary_en: exInfo?.secondary_muscles_en || [],
                 isCompound: exInfo?.is_compound ?? false,
                 isIsolation: exInfo?.is_isolation ?? true,
-                equipment_es: exInfo?.equipment_es || [],
-                equipment_en: exInfo?.equipment_en || []
+                equipment_es: exInfo?.equipment_es || ['Libre'],
+                equipment_en: exInfo?.equipment_en || ['Free']
               };
             })
           };
@@ -1072,19 +1256,21 @@ export class RoutineGeneratorComponent implements OnInit {
                 exerciseId: sel.exerciseId,
                 name_es: exInfo?.name_es || sel.exerciseId,
                 name_en: exInfo?.name_en || sel.exerciseId,
+                exerciseName: exInfo?.name_es || sel.exerciseId,
+                name: exInfo?.name_es || sel.exerciseId,
                 sets: sel.sets,
                 reps: sel.repsRange,
                 repsRange: sel.repsRange,
                 movementPattern: slot.movementPattern,
                 isFinisher: slot.isFinisher || false,
-                primary_es: exInfo?.primary_muscle_es || [],
-                primary_en: exInfo?.primary_muscle_en ? (Array.isArray(exInfo.primary_muscle_en) ? exInfo.primary_muscle_en : [exInfo.primary_muscle_en]) : [],
+                primary_es: exInfo?.primary_muscle_es || ['General'],
+                primary_en: exInfo?.primary_muscle_en ? (Array.isArray(exInfo.primary_muscle_en) ? exInfo.primary_muscle_en : [exInfo.primary_muscle_en]) : ['General'],
                 secondary_es: exInfo?.secondary_muscles_es || [],
                 secondary_en: exInfo?.secondary_muscles_en || [],
                 isCompound: exInfo?.is_compound ?? false,
                 isIsolation: exInfo?.is_isolation ?? true,
-                equipment_es: exInfo?.equipment_es || [],
-                equipment_en: exInfo?.equipment_en || []
+                equipment_es: exInfo?.equipment_es || ['Libre'],
+                equipment_en: exInfo?.equipment_en || ['Free']
               });
             }
           }

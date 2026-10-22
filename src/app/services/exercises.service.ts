@@ -88,6 +88,11 @@ export class ExercisesService {
     return this.exerciseMap.get(id);
   }
 
+  registerCustomExercise(exercise: Exercise): void {
+    this.exerciseMap.set(exercise.id, exercise);
+    this.exercises.unshift(exercise);
+  }
+
   getForPattern(pattern: string, emphasis?: string): Exercise[] {
     let list = this.exercises.filter(e => {
       if (!e.movement_pattern) return false;
