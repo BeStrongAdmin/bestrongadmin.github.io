@@ -182,12 +182,12 @@ interface CustomDayPlan {
             </li>
           </ul>
 
-          <!-- Current Day Slots -->
+          <!-- Current Day Slots with 50/50 Card Layout -->
           <div class="row g-3">
-            <div class="col-12 col-lg-6" *ngFor="let slot of currentSlots; trackBy: trackBySlotId">
+            <div class="col-12 col-xl-6" *ngFor="let slot of currentSlots; trackBy: trackBySlotId">
               <div class="card h-100 p-3 rounded-4 border-0 panel-card" [style.background-color]="slot.isFinisher ? '#11131a' : '#0d0f14'">
                 <!-- Slot Header -->
-                <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="d-flex justify-content-between align-items-start mb-3">
                   <div>
                     <span class="badge" [ngClass]="slot.isFinisher ? 'badge-finisher' : 'badge-pattern'">
                       {{ slot.isFinisher ? 'FINISHER' : slot.movementPattern }}
@@ -195,62 +195,69 @@ interface CustomDayPlan {
                     <span *ngIf="slot.emphasis" class="badge badge-subtle ms-1">{{ slot.emphasis }}</span>
                     <h6 class="fw-bold text-light mt-1 mb-0" style="font-size: 0.95rem;">{{ slot.label }}</h6>
                   </div>
-                </div>
-
-                <!-- Selected Exercise Box with Thumbnail -->
-                <div class="d-flex align-items-center justify-content-between p-2 rounded-3 my-2" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
-                  <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
-                    <!-- Exercise GIF Thumbnail -->
-                    <div class="thumb-box flex-shrink-0">
-                      <img 
-                        *ngIf="getExerciseImage(selections[currentDayIndex]?.[slot.id]?.exerciseId)" 
-                        [src]="getExerciseImage(selections[currentDayIndex]?.[slot.id]?.exerciseId)" 
-                        class="thumb-img rounded-2" 
-                        alt=""
-                        loading="lazy"
-                      >
-                      <i *ngIf="!getExerciseImage(selections[currentDayIndex]?.[slot.id]?.exerciseId)" class="bi bi-activity text-success fs-5"></i>
-                    </div>
-
-                    <div class="text-truncate">
-                      <div class="fw-semibold text-light text-truncate" style="font-size: 0.9rem;">
-                        {{ getExerciseName(selections[currentDayIndex]?.[slot.id]?.exerciseId) }}
-                      </div>
-                      <div class="text-secondary small" style="font-size: 0.75rem;">
-                        {{ getExerciseMuscle(selections[currentDayIndex]?.[slot.id]?.exerciseId) }}
-                      </div>
-                    </div>
-                  </div>
-
                   <button class="btn btn-outline-secondary btn-sm text-nowrap rounded-3 py-1 px-2" style="font-size: 0.8rem;" (click)="openSearchModal(slot)">
                     <i class="bi bi-search"></i> Cambiar
                   </button>
                 </div>
 
-                <!-- Sets & Reps Inputs -->
-                <div class="row g-2 mt-1">
-                  <div class="col-6">
-                    <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Series</label>
-                    <div class="input-group input-group-sm">
-                      <button class="btn btn-outline-secondary" type="button" (click)="adjustSets(slot.id, -1)">-</button>
-                      <input 
-                        type="number" 
-                        class="form-control text-center" 
-                        [ngModel]="selections[currentDayIndex]?.[slot.id]?.sets || slot.defaultSets" 
-                        (ngModelChange)="updateSlotSets(slot.id, $event)"
+                <!-- 50/50 Card Body: Half Image (50%), Half Details & Sets/Reps (50%) -->
+                <div class="row g-3 align-items-stretch">
+                  <!-- Half 1: Image container (~50% on sm/md/lg/xl) -->
+                  <div class="col-12 col-sm-5 d-flex">
+                    <div class="card-half-media w-100">
+                      <img 
+                        *ngIf="getExerciseImage(selections[currentDayIndex]?.[slot.id]?.exerciseId)" 
+                        [src]="getExerciseImage(selections[currentDayIndex]?.[slot.id]?.exerciseId)" 
+                        class="card-half-img" 
+                        alt=""
+                        loading="lazy"
                       >
-                      <button class="btn btn-outline-secondary" type="button" (click)="adjustSets(slot.id, 1)">+</button>
+                      <div *ngIf="!getExerciseImage(selections[currentDayIndex]?.[slot.id]?.exerciseId)" class="text-center p-3 text-secondary">
+                        <i class="bi bi-activity text-success fs-1 d-block mb-1"></i>
+                        <span class="small" style="font-size: 0.75rem;">Sin animación</span>
+                      </div>
                     </div>
                   </div>
-                  <div class="col-6">
-                    <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Repeticiones</label>
-                    <input 
-                      type="text" 
-                      class="form-control form-control-sm text-center" 
-                      [ngModel]="selections[currentDayIndex]?.[slot.id]?.repsRange || slot.defaultReps" 
-                      (ngModelChange)="updateSlotReps(slot.id, $event)"
-                      placeholder="8-12"
-                    >
+
+                  <!-- Half 2: Exercise Details & Sets/Reps Inputs (~50%) -->
+                  <div class="col-12 col-sm-7 d-flex flex-column justify-content-between">
+                    <div>
+                      <div class="fw-bold text-light text-truncate mb-1" style="font-size: 0.95rem;">
+                        {{ getExerciseName(selections[currentDayIndex]?.[slot.id]?.exerciseId) }}
+                      </div>
+                      <div class="text-secondary small mb-2" style="font-size: 0.75rem;">
+                        <span class="badge badge-subtle text-truncate d-inline-block" style="max-width: 100%;">
+                          {{ getExerciseMuscle(selections[currentDayIndex]?.[slot.id]?.exerciseId) }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Sets & Reps Inputs at Bottom -->
+                    <div class="row g-2 mt-auto pt-2">
+                      <div class="col-6">
+                        <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Series</label>
+                        <div class="input-group input-group-sm">
+                          <button class="btn btn-outline-secondary" type="button" (click)="adjustSets(slot.id, -1)">-</button>
+                          <input 
+                            type="number" 
+                            class="form-control text-center" 
+                            [ngModel]="selections[currentDayIndex]?.[slot.id]?.sets || slot.defaultSets" 
+                            (ngModelChange)="updateSlotSets(slot.id, $event)"
+                          >
+                          <button class="btn btn-outline-secondary" type="button" (click)="adjustSets(slot.id, 1)">+</button>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Repeticiones</label>
+                        <input 
+                          type="text" 
+                          class="form-control form-control-sm text-center" 
+                          [ngModel]="selections[currentDayIndex]?.[slot.id]?.repsRange || slot.defaultReps" 
+                          (ngModelChange)="updateSlotReps(slot.id, $event)"
+                          placeholder="8-12"
+                        >
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -274,8 +281,8 @@ interface CustomDayPlan {
                 <span class="badge" [ngClass]="currentCustomDayIndex === i ? 'bg-success text-dark fw-bold' : 'bg-dark text-secondary border border-secondary'">
                   Día {{ i + 1 }}
                 </span>
-                <span class="text-truncate small fw-semibold" style="max-width: 140px;">
-                  {{ day.name || 'Sin Título' }}
+                <span class="text-truncate small fw-semibold" style="max-width: 160px;">
+                  {{ day.name || ('Día Personalizado ' + (i + 1)) }}
                 </span>
                 <span class="badge rounded-pill bg-dark text-secondary border border-secondary" style="font-size: 0.65rem;">
                   {{ day.exercises.length }}
@@ -299,7 +306,7 @@ interface CustomDayPlan {
                     type="text" 
                     class="form-control rounded-end-3" 
                     [(ngModel)]="activeCustomDays[currentCustomDayIndex].name" 
-                    placeholder="Ej: Glúteos & Isquios, Brazos, Hombros..."
+                    [placeholder]="'Ej: Día Personalizado ' + (currentCustomDayIndex + 1)"
                   >
                 </div>
               </div>
@@ -324,7 +331,7 @@ interface CustomDayPlan {
           >
             <i class="bi bi-card-checklist text-secondary fs-1 mb-3 d-block opacity-50"></i>
             <h6 class="fw-bold text-light mb-1">Aún no hay ejercicios en este día</h6>
-            <p class="text-secondary small mb-3">Diseña la sesión seleccionando ejercicios del catálogo completo.</p>
+            <p class="text-secondary small mb-3">Haz clic en "+ Agregar Ejercicio a este Día" para elegir del catálogo con animaciones GIF.</p>
             <button 
               type="button" 
               class="btn btn-outline-success btn-sm px-3 rounded-3"
@@ -334,94 +341,104 @@ interface CustomDayPlan {
             </button>
           </div>
 
-          <!-- Custom Exercises List -->
+          <!-- Custom Exercises List with 50/50 Card Layout -->
           <div class="row g-3" *ngIf="activeCustomDays[currentCustomDayIndex].exercises.length > 0">
             <div 
-              class="col-12" 
+              class="col-12 col-xl-6" 
               *ngFor="let exItem of activeCustomDays[currentCustomDayIndex].exercises; let exIdx = index; trackBy: trackByCustomExerciseUid"
             >
-              <div class="card p-3 rounded-4 border-0 panel-card">
-                <div class="row align-items-center g-3">
-                  <!-- Exercise Number & Thumbnail -->
-                  <div class="col-12 col-md-5 d-flex align-items-center gap-3">
-                    <span class="badge bg-dark text-secondary border border-secondary px-2 py-1 fs-6">
-                      {{ exIdx + 1 }}
-                    </span>
-
-                    <div class="thumb-box flex-shrink-0">
+              <div class="card h-100 p-3 rounded-4 border-0 panel-card">
+                <!-- 50/50 Card Layout: Half Image (50%), Half Details & Controls (50%) -->
+                <div class="row g-3 align-items-stretch">
+                  <!-- Half 1: Large Image (approx 50%) -->
+                  <div class="col-12 col-sm-5 d-flex">
+                    <div class="card-half-media w-100">
+                      <span class="exercise-order-badge">#{{ exIdx + 1 }}</span>
                       <img 
                         *ngIf="getExerciseImage(exItem.exerciseId)" 
                         [src]="getExerciseImage(exItem.exerciseId)" 
-                        class="thumb-img rounded-2" 
+                        class="card-half-img" 
                         alt=""
                         loading="lazy"
                       >
-                      <i *ngIf="!getExerciseImage(exItem.exerciseId)" class="bi bi-activity text-success fs-5"></i>
-                    </div>
-
-                    <div class="text-truncate">
-                      <div class="fw-bold text-light text-truncate" style="font-size: 0.95rem;">
-                        {{ getExerciseName(exItem.exerciseId) }}
+                      <div *ngIf="!getExerciseImage(exItem.exerciseId)" class="text-center p-3 text-secondary">
+                        <i class="bi bi-activity text-success fs-1 d-block mb-1"></i>
+                        <span class="small" style="font-size: 0.75rem;">Sin animación</span>
                       </div>
-                      <div class="text-secondary small" style="font-size: 0.75rem;">
+                    </div>
+                  </div>
+
+                  <!-- Half 2: Exercise Details & Sets/Reps & Actions (approx 50%) -->
+                  <div class="col-12 col-sm-7 d-flex flex-column justify-content-between">
+                    <div>
+                      <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div class="fw-bold text-light text-truncate me-2" style="font-size: 0.95rem;">
+                          {{ getExerciseName(exItem.exerciseId) }}
+                        </div>
+
+                        <!-- Actions: Reorder & Remove -->
+                        <div class="btn-group btn-group-sm flex-shrink-0">
+                          <button 
+                            class="btn btn-outline-secondary py-1 px-2" 
+                            [disabled]="exIdx === 0" 
+                            (click)="moveCustomExercise(exIdx, -1)"
+                            title="Mover arriba"
+                          >
+                            <i class="bi bi-arrow-up"></i>
+                          </button>
+                          <button 
+                            class="btn btn-outline-secondary py-1 px-2" 
+                            [disabled]="exIdx === activeCustomDays[currentCustomDayIndex].exercises.length - 1" 
+                            (click)="moveCustomExercise(exIdx, 1)"
+                            title="Mover abajo"
+                          >
+                            <i class="bi bi-arrow-down"></i>
+                          </button>
+                          <button 
+                            class="btn btn-outline-danger py-1 px-2" 
+                            (click)="removeCustomExercise(exIdx)"
+                            title="Eliminar ejercicio"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="text-secondary small mb-2" style="font-size: 0.75rem;">
                         <span class="badge badge-subtle me-1">{{ getExercisePattern(exItem.exerciseId) }}</span>
-                        <span>{{ getExerciseMuscle(exItem.exerciseId) }}</span>
+                        <span class="text-truncate d-inline-block align-middle" style="max-width: 140px;">
+                          {{ getExerciseMuscle(exItem.exerciseId) }}
+                        </span>
                       </div>
                     </div>
-                  </div>
 
-                  <!-- Sets Input -->
-                  <div class="col-6 col-md-3">
-                    <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Series</label>
-                    <div class="input-group input-group-sm">
-                      <button class="btn btn-outline-secondary" type="button" (click)="adjustCustomSets(exIdx, -1)">-</button>
-                      <input 
-                        type="number" 
-                        class="form-control text-center" 
-                        [(ngModel)]="exItem.sets"
-                        min="1"
-                        max="10"
-                      >
-                      <button class="btn btn-outline-secondary" type="button" (click)="adjustCustomSets(exIdx, 1)">+</button>
+                    <!-- Sets & Reps Inputs at Bottom -->
+                    <div class="row g-2 mt-auto pt-2">
+                      <div class="col-6">
+                        <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Series</label>
+                        <div class="input-group input-group-sm">
+                          <button class="btn btn-outline-secondary" type="button" (click)="adjustCustomSets(exIdx, -1)">-</button>
+                          <input 
+                            type="number" 
+                            class="form-control text-center" 
+                            [(ngModel)]="exItem.sets"
+                            min="1"
+                            max="10"
+                          >
+                          <button class="btn btn-outline-secondary" type="button" (click)="adjustCustomSets(exIdx, 1)">+</button>
+                        </div>
+                      </div>
+
+                      <div class="col-6">
+                        <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Repeticiones</label>
+                        <input 
+                          type="text" 
+                          class="form-control form-control-sm text-center" 
+                          [(ngModel)]="exItem.repsRange" 
+                          placeholder="8-12"
+                        >
+                      </div>
                     </div>
-                  </div>
-
-                  <!-- Reps Input -->
-                  <div class="col-6 col-md-2">
-                    <label class="form-label text-secondary small mb-1" style="font-size: 0.75rem;">Repeticiones</label>
-                    <input 
-                      type="text" 
-                      class="form-control form-control-sm text-center" 
-                      [(ngModel)]="exItem.repsRange" 
-                      placeholder="8-12"
-                    >
-                  </div>
-
-                  <!-- Actions: Reorder & Remove -->
-                  <div class="col-12 col-md-2 d-flex justify-content-end gap-1">
-                    <button 
-                      class="btn btn-outline-secondary btn-sm rounded-3 py-1 px-2" 
-                      [disabled]="exIdx === 0" 
-                      (click)="moveCustomExercise(exIdx, -1)"
-                      title="Mover arriba"
-                    >
-                      <i class="bi bi-arrow-up"></i>
-                    </button>
-                    <button 
-                      class="btn btn-outline-secondary btn-sm rounded-3 py-1 px-2" 
-                      [disabled]="exIdx === activeCustomDays[currentCustomDayIndex].exercises.length - 1" 
-                      (click)="moveCustomExercise(exIdx, 1)"
-                      title="Mover abajo"
-                    >
-                      <i class="bi bi-arrow-down"></i>
-                    </button>
-                    <button 
-                      class="btn btn-outline-danger btn-sm rounded-3 py-1 px-2 ms-2" 
-                      (click)="removeCustomExercise(exIdx)"
-                      title="Eliminar ejercicio"
-                    >
-                      <i class="bi bi-trash"></i>
-                    </button>
                   </div>
                 </div>
               </div>
@@ -470,7 +487,7 @@ interface CustomDayPlan {
               </div>
             </div>
 
-            <!-- Exercises List with GIFs -->
+            <!-- Exercises List with Enhanced GIFs -->
             <div class="list-group list-group-flush gap-1">
               <button 
                 type="button" 
@@ -480,15 +497,15 @@ interface CustomDayPlan {
                 (click)="onExerciseSelected(ex.id)"
               >
                 <div class="d-flex align-items-center gap-3 overflow-hidden me-2">
-                  <div class="thumb-box flex-shrink-0">
+                  <div class="modal-thumb-box flex-shrink-0">
                     <img 
                       *ngIf="exercisesService.getImageUrl(ex.img_src || ex.id)" 
                       [src]="exercisesService.getImageUrl(ex.img_src || ex.id)" 
-                      class="thumb-img rounded-2" 
+                      class="modal-thumb-img rounded-2" 
                       alt=""
                       loading="lazy"
                     >
-                    <i *ngIf="!exercisesService.getImageUrl(ex.img_src || ex.id)" class="bi bi-activity text-secondary fs-5"></i>
+                    <i *ngIf="!exercisesService.getImageUrl(ex.img_src || ex.id)" class="bi bi-activity text-secondary fs-4"></i>
                   </div>
                   <div class="text-truncate">
                     <div class="fw-bold text-light small text-truncate">{{ ex.name_es }}</div>
@@ -552,18 +569,54 @@ interface CustomDayPlan {
       color: #00e676 !important;
       border-color: rgba(0, 230, 118, 0.3) !important;
     }
-    .thumb-box {
-      width: 48px;
-      height: 48px;
+    .card-half-media {
+      width: 100%;
+      height: 180px;
+      min-height: 180px;
+      background: #080a0f;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    .card-half-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.25s ease;
+      &:hover {
+        transform: scale(1.03);
+      }
+    }
+    .exercise-order-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #00e676;
+      font-weight: 800;
+      font-size: 0.75rem;
+      border-radius: 6px;
+      padding: 2px 7px;
+      z-index: 2;
+    }
+    .modal-thumb-box {
+      width: 60px;
+      height: 60px;
       background: #11141c;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
     }
-    .thumb-img {
+    .modal-thumb-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -606,7 +659,7 @@ export class RoutineGeneratorComponent implements OnInit {
   currentSlots: SlotConfig[] = [];
   selections: Record<number, Record<string, SlotSelection>> = {};
 
-  // Custom Mode State
+  // Custom Mode State (Default: Día Personalizado 1, Día Personalizado 2...)
   customDaysCount = 3;
   currentCustomDayIndex = 0;
   customDays: CustomDayPlan[] = [];
@@ -633,7 +686,7 @@ export class RoutineGeneratorComponent implements OnInit {
     this.initializeDefaultSelections();
     this.updateCurrentSlots();
 
-    // Initialize Custom Days Plans
+    // Initialize Custom Days Plans with "Día Personalizado X"
     this.initializeCustomDays();
   }
 
@@ -661,20 +714,10 @@ export class RoutineGeneratorComponent implements OnInit {
   // CUSTOM MODE LOGIC
   // ==========================================
   private initializeCustomDays(): void {
-    const defaultDayNames = [
-      'Glúteos & Isquios',
-      'Brazos & Hombros',
-      'Espalda & Pecho',
-      'Cuádriceps & Gemelos',
-      'Torso Potencia',
-      'Pierna Hipertrofia',
-      'Core & Acondicionamiento'
-    ];
-
     this.customDays = [];
     for (let i = 0; i < 7; i++) {
       this.customDays.push({
-        name: defaultDayNames[i] || `Día ${i + 1}`,
+        name: `Día Personalizado ${i + 1}`,
         exercises: []
       });
     }
@@ -687,6 +730,12 @@ export class RoutineGeneratorComponent implements OnInit {
   onCustomDaysCountChange(): void {
     if (this.currentCustomDayIndex >= this.customDaysCount) {
       this.currentCustomDayIndex = 0;
+    }
+    while (this.customDays.length < this.customDaysCount) {
+      this.customDays.push({
+        name: `Día Personalizado ${this.customDays.length + 1}`,
+        exercises: []
+      });
     }
   }
 
@@ -974,7 +1023,7 @@ export class RoutineGeneratorComponent implements OnInit {
         daysData = activeDays.map((d, i) => {
           const exIds = d.exercises.map(e => e.exerciseId);
           const muscles = this.exercisesService.getMusclesForExercises(exIds);
-          const dayName = d.name.trim() || `Día ${i + 1}`;
+          const dayName = d.name.trim() || `Día Personalizado ${i + 1}`;
 
           return {
             dayIndex: i, // 0-indexed for full mobile app compatibility
