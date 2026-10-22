@@ -1,59 +1,74 @@
-# BestrongAdmin
+# BeStrong Admin Web 🏋️‍♂️⚡
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.4.
+Panel web administrativo para la gestión de rutinas biomecánicas personalizadas, asignación de códigos y administración de entrenadores en **BeStrong**.
 
-## Development server
+Construido con **Angular 19/22 (Standalone API)**, **Bootstrap 5 (100% responsivo)**, **Firebase Web SDK** y contenerizado con **Docker (Nginx Alpine)**.
 
-To start a local development server, run:
+---
 
+## 🚀 Características Principales
+
+1. **Generador Biomecánico de Rutinas:**
+   * Soporte para frecuencias de 2 a 6 días (*Torso, Pierna, Empuje, Jalón, Fullbody*).
+   * Slots estructurados por patrones de movimiento biomecánicos y finishers (Core, Cuello, Antebrazo).
+   * Catálogo completo de ejercicios con búsqueda y filtrado por grupos musculares.
+   * Generación de códigos únicos (`BST-XXXX`) con expiración automática de 60 días en Firestore (`assigned_routines/{code}`).
+
+2. **Gestión de Administradores y Métricas (Superadmin):**
+   * Monitoreo en tiempo real de cuántas rutinas ha generado cada admin y cuántos usuarios está entrenando.
+   * Lista de usuarios registrados en la app móvil (`/users`) para convertirlos en Administradores con un solo clic.
+   * Posibilidad de activar, suspender o revocar permisos de administración en `/admins/{uid}`.
+
+3. **Seguridad y Control de Acceso:**
+   * Autenticación con Firebase Auth y verificación de roles en Firestore.
+   * Guards de rutas (`adminGuard` y `superAdminGuard`).
+   * Despliegue seguro de reglas de seguridad (`firestore.rules`) mediante Firebase CLI.
+
+4. **Diseño Moderno y Responsivo:**
+   * Basado 100% en Bootstrap 5 con tema oscuro BeStrong Power Core (Púrpura, Lima y Dorado).
+   * Totalmente adaptado para teléfonos, tabletas y computadoras de escritorio.
+
+---
+
+## 🛠️ Comandos de Desarrollo
+
+### 1. Iniciar localmente:
 ```bash
-ng serve
+npm install
+npm start
+```
+Abre tu navegador en `http://localhost:4200/`.
+
+### 2. Compilar para producción:
+```bash
+npm run build
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
+### 3. Ejecutar con Docker (Ligero multi-stage Nginx Alpine):
 ```bash
-ng generate component component-name
+docker compose up --build
+```
+Abre tu navegador en `http://localhost:8080/`.
+
+### 4. Desplegar reglas de Firestore desde la terminal:
+```bash
+npm run deploy:rules
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+---
 
-```bash
-ng generate --help
-```
+## 🌐 Despliegue Continuo (CI/CD) en GitHub Pages
 
-## Building
+El proyecto incluye un flujo automatizado en `.github/workflows/deploy.yml`.
 
-To build the project run:
+### Para conectarlo con tu repositorio en GitHub:
 
-```bash
-ng build
-```
+1. Crea un nuevo repositorio en tu GitHub (por ejemplo: `bestrong-admin`).
+2. Agrega el origen remoto y sube el código:
+   ```bash
+   git remote add origin git@github-personal:marcohesa/bestrong-admin.git
+   git push -u origin main
+   ```
+3. En GitHub ve a **Settings** $\rightarrow$ **Pages** $\rightarrow$ **Source**: selecciona **GitHub Actions**.
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+¡A partir de ese momento, cada `git push` a `main` compilará y publicará la web automáticamente y gratis en GitHub Pages!
