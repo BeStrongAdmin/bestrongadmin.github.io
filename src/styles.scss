@@ -1,1 +1,67 @@
-/* You can add global styles to this file, and also import other style files */
+// 🎨 Custom Bootstrap Theme for BeStrong Admin
+// Power Core Palette: Violet action, Lime progression, Gold reward
+
+$primary: #8B5CF6;
+$secondary: #A3E635;
+$warning: #F59E0B;
+$danger: #FB7185;
+$success: #34D399;
+$dark: #09090B;
+$body-bg: #09090B;
+$body-color: #FAFAFA;
+$card-bg: #141219;
+$card-border-color: #302A39;
+$border-color: #302A39;
+
+// Form controls styling
+$input-bg: #1D1A24;
+$input-border-color: #302A39;
+$input-color: #FAFAFA;
+$input-focus-border-color: #8B5CF6;
+$input-placeholder-color: #817A8D;
+
+@import "bootstrap/scss/bootstrap";
+
+// Specific fine-tuning where Bootstrap classes need subtle tweaks
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: $body-bg;
+  color: $body-color;
+}
+
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-color: #FAFAFA;
+  --bs-table-border-color: #302A39;
+}
+
+.modal-content {
+  background-color: #141219;
+  border: 1px solid #302A39;
+  color: #FAFAFA;
+}
+
+.nav-tabs {
+  border-bottom: 2px solid #302A39;
+  .nav-link {
+    color: #B8B1C4;
+    border: none;
+    border-bottom: 3px solid transparent;
+    &.active {
+      color: #8B5CF6;
+      background: transparent;
+      border-bottom: 3px solid #8B5CF6;
+      font-weight: 600;
+    }
+    &:hover:not(.active) {
+      color: #FAFAFA;
+      border-color: transparent;
+    }
+  }
+}
+
+.badge-outline {
+  background: transparent;
+  border: 1px solid currentColor;
+}
