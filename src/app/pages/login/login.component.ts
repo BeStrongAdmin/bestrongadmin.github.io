@@ -297,7 +297,7 @@ import { AuthService } from '../../services/auth.service';
             </div>
             <h4 class="fw-bold mb-1 text-light">Recuperar Contraseña</h4>
             <p class="text-secondary small mb-0">
-              Ingresa el correo asociado a tu cuenta BeStrong. Te enviaremos un código de seguridad de 6 dígitos con validez de 2 minutos.
+              Ingresa el correo asociado a tu cuenta BeStrong. Te enviaremos un enlace oficial seguro para cambiar tu contraseña.
             </p>
           </div>
 
@@ -331,27 +331,34 @@ import { AuthService } from '../../services/auth.service';
             [disabled]="resetLoading() || !resetEmail || !resetEmail.includes('@')"
           >
             <span *ngIf="resetLoading()" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
-            <span>{{ resetLoading() ? 'Enviando código...' : 'Enviar Código (2 Minutos)' }}</span>
+            <span>{{ resetLoading() ? 'Enviando enlace...' : 'Enviar Enlace de Recuperación' }}</span>
           </button>
         </div>
 
-        <!-- STEP 2: Enter 6-digit code with 2-minute countdown -->
+        <!-- STEP 2: Instructions to click email link or paste code/url -->
         <div *ngIf="resetStep() === 2">
           <div class="text-center mb-3">
             <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-dark border border-secondary p-3 mb-2 text-info">
-              <i class="bi bi-shield-lock-fill fs-3"></i>
+              <i class="bi bi-envelope-paper-heart-fill fs-3 text-success"></i>
             </div>
-            <h4 class="fw-bold mb-1 text-light">Código de Seguridad</h4>
-            <p class="text-secondary small mb-2">
-              Ingresa el código de 6 dígitos enviado a <strong class="text-light">{{ resetEmail }}</strong>.
+            <h4 class="fw-bold mb-1 text-light">Enlace Enviado</h4>
+            <p class="text-secondary small mb-3">
+              Hemos enviado el enlace oficial de restablecimiento a <strong class="text-light">{{ resetEmail }}</strong>.
             </p>
 
-            <!-- Countdown Timer Badge -->
-            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2 border" 
-                 [ngClass]="timerSeconds() <= 30 ? 'bg-danger bg-opacity-10 border-danger text-danger' : 'bg-success bg-opacity-10 border-success text-success'">
-              <i class="bi bi-stopwatch-fill"></i>
-              <span class="fw-bold" style="font-size: 1rem; letter-spacing: 1px;">{{ formatTimer() }}</span>
-              <span class="small" *ngIf="timerSeconds() === 0">(Expirado)</span>
+            <div class="p-3 mb-3 rounded-3 border border-secondary border-opacity-25 text-start" style="background: rgba(255, 255, 255, 0.03);">
+              <div class="d-flex align-items-start gap-2 mb-2">
+                <i class="bi bi-check2-circle text-success fs-5 flex-shrink-0"></i>
+                <div class="small text-secondary" style="font-size: 0.82rem; line-height: 1.4;">
+                  Abre tu correo y <strong>haz clic en el enlace</strong> para definir tu nueva contraseña directamente.
+                </div>
+              </div>
+              <div class="d-flex align-items-start gap-2">
+                <i class="bi bi-link-45deg text-warning fs-5 flex-shrink-0"></i>
+                <div class="small text-secondary" style="font-size: 0.82rem; line-height: 1.4;">
+                  ¿Abriste tu correo en otro dispositivo o ventana? Pega aquí el enlace o código que recibiste para continuar en esta pestaña:
+                </div>
+              </div>
             </div>
           </div>
 
@@ -359,53 +366,55 @@ import { AuthService } from '../../services/auth.service';
             {{ resetError() }}
           </div>
 
-          <div class="mb-3 text-center">
-            <label class="form-label text-secondary small fw-medium d-block">Código de 6 Dígitos</label>
-            <input 
-              type="text" 
-              class="form-control text-center fw-bold fs-3 text-light" 
-              style="letter-spacing: 8px; background-color: #12141a; border-color: #2c3240; border-radius: 12px;"
-              placeholder="••••••" 
-              [(ngModel)]="resetCode" 
-              name="resetCode" 
-              maxlength="6"
-              [disabled]="resetLoading() || timerSeconds() === 0"
-              autocomplete="one-time-code"
-            />
+          <div class="mb-3">
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-secondary">
+                <i class="bi bi-key"></i>
+              </span>
+              <input 
+                type="text" 
+                class="form-control text-light" 
+                style="background-color: #12141a; border-color: #2c3240; border-radius: 0 12px 12px 0;"
+                placeholder="Pega el enlace o código de tu correo..." 
+                [(ngModel)]="manualCodeOrUrl" 
+                name="manualCodeOrUrl" 
+                [disabled]="resetLoading()"
+              />
+            </div>
           </div>
 
           <button 
             type="button" 
             class="btn btn-success text-dark w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-2"
             style="border-radius: 12px; background-color: #00e676; border-color: #00e676;"
-            (click)="onVerifyCode()"
-            [disabled]="resetLoading() || resetCode.trim().length !== 6 || timerSeconds() === 0"
+            (click)="onVerifyManualCode()"
+            [disabled]="resetLoading() || !manualCodeOrUrl || manualCodeOrUrl.trim().length === 0"
           >
             <span *ngIf="resetLoading()" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
-            <span>{{ resetLoading() ? 'Verificando...' : 'Verificar Código' }}</span>
+            <span>{{ resetLoading() ? 'Verificando...' : 'Continuar a Nueva Contraseña' }}</span>
           </button>
 
-          <div class="text-center mt-2">
+          <div class="text-center mt-3">
             <button 
               type="button" 
               class="btn btn-link text-secondary text-decoration-none small hover-light" 
               (click)="onResendCode()"
               [disabled]="resetLoading()"
             >
-              <i class="bi bi-arrow-clockwise me-1"></i> ¿No recibiste el código? Reenviar
+              <i class="bi bi-arrow-clockwise me-1"></i> ¿No te llegó el correo? Reenviar enlace
             </button>
           </div>
         </div>
 
-        <!-- STEP 3: Change password -->
+        <!-- STEP 3: Change password with real-time mismatch feedback -->
         <div *ngIf="resetStep() === 3">
           <div class="text-center mb-3">
             <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-dark border border-secondary p-3 mb-2 text-success">
-              <i class="bi bi-check2-circle fs-3"></i>
+              <i class="bi bi-shield-lock-fill fs-3 text-success"></i>
             </div>
             <h4 class="fw-bold mb-1 text-light">Nueva Contraseña</h4>
             <p class="text-secondary small mb-0">
-              Código verificado exitosamente. Ingresa tu nueva contraseña para BeStrong.
+              Ingresa y confirma tu nueva contraseña para BeStrong.
             </p>
           </div>
 
@@ -414,7 +423,7 @@ import { AuthService } from '../../services/auth.service';
           </div>
 
           <div class="mb-3">
-            <label class="form-label text-secondary small fw-medium">Nueva Contraseña</label>
+            <label class="form-label text-secondary small fw-medium">Nueva Contraseña (Mínimo 6 caracteres)</label>
             <div class="input-group">
               <span class="input-group-text bg-dark border-secondary text-secondary">
                 <i class="bi bi-lock"></i>
@@ -429,6 +438,9 @@ import { AuthService } from '../../services/auth.service';
                 minlength="6"
                 [disabled]="resetLoading()"
               />
+            </div>
+            <div *ngIf="newPassword && newPassword.length < 6" class="text-warning small mt-1" style="font-size: 0.78rem;">
+              <i class="bi bi-info-circle-fill me-1"></i> La contraseña debe tener al menos 6 caracteres.
             </div>
           </div>
 
@@ -449,6 +461,13 @@ import { AuthService } from '../../services/auth.service';
                 [disabled]="resetLoading()"
               />
             </div>
+            <!-- Aviso visual si las contraseñas no coinciden -->
+            <div *ngIf="confirmPassword && newPassword !== confirmPassword" class="text-danger small mt-1 fw-medium" style="font-size: 0.78rem;">
+              <i class="bi bi-x-circle-fill me-1"></i> Las contraseñas no coinciden.
+            </div>
+            <div *ngIf="confirmPassword && newPassword && newPassword === confirmPassword && newPassword.length >= 6" class="text-success small mt-1 fw-medium" style="font-size: 0.78rem;">
+              <i class="bi bi-check-circle-fill me-1"></i> Las contraseñas coinciden correctamente.
+            </div>
           </div>
 
           <button 
@@ -456,7 +475,7 @@ import { AuthService } from '../../services/auth.service';
             class="btn btn-success text-dark w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-2"
             style="border-radius: 12px; background-color: #00e676; border-color: #00e676;"
             (click)="onCompletePasswordReset()"
-            [disabled]="resetLoading() || !newPassword || newPassword.length < 6 || newPassword !== confirmPassword"
+            [disabled]="resetLoading() || !newPassword || !confirmPassword"
           >
             <span *ngIf="resetLoading()" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
             <span>{{ resetLoading() ? 'Guardando...' : 'Guardar Nueva Contraseña' }}</span>
@@ -470,7 +489,7 @@ import { AuthService } from '../../services/auth.service';
           </div>
           <h4 class="fw-bold mb-2 text-light">¡Contraseña Actualizada!</h4>
           <p class="text-secondary small mb-4" style="line-height: 1.5;">
-            Tu código de seguridad ha sido validado. También te enviamos el enlace de confirmación seguro a tu correo <strong class="text-light">{{ resetEmail }}</strong> para sincronización total con Firebase.
+            Tu contraseña ha sido actualizada con éxito en los servidores de BeStrong. Ya puedes iniciar sesión con tu nueva contraseña.
           </p>
 
           <button 
@@ -524,6 +543,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   resetStep = signal<1 | 2 | 3 | 4>(1);
   resetEmail = '';
   resetCode = '';
+  manualCodeOrUrl = '';
   newPassword = '';
   confirmPassword = '';
   resetLoading = signal<boolean>(false);
@@ -537,7 +557,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
 
   async ngOnInit(): Promise<void> {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe(async params => {
       if (params['mode'] === 'register' || params['tab'] === 'register') {
         this.mode = 'register';
       }
@@ -546,6 +566,15 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.oobCode = codeParam;
         this.resetStep.set(3); // Abrir directamente en el paso de nueva contraseña
         this.showResetModal.set(true);
+        try {
+          const emailFromCode = await this.auth.verifyFirebaseResetCode(codeParam);
+          if (emailFromCode) {
+            this.resetEmail = emailFromCode;
+          }
+        } catch (e: any) {
+          console.warn('oobCode verification warning:', e);
+          this.resetError.set(this.translateResetError(e.code || e.message));
+        }
       }
     });
 
@@ -555,7 +584,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     ]);
 
     const user = this.auth.currentUser();
-    if (user) {
+    if (user && !this.oobCode) {
       if (user.isSuperAdmin) {
         this.router.navigate(['/admin-management']);
       } else {
@@ -651,6 +680,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   openResetModal(): void {
     this.resetEmail = this.email ? this.email.trim() : '';
     this.resetCode = '';
+    this.manualCodeOrUrl = '';
+    this.oobCode = '';
     this.newPassword = '';
     this.confirmPassword = '';
     this.resetError.set('');
@@ -703,9 +734,10 @@ export class LoginComponent implements OnInit, OnDestroy {
       await this.auth.requestPasswordResetCode(this.resetEmail);
       this.resetStep.set(2);
       this.resetCode = '';
+      this.manualCodeOrUrl = '';
       this.startTimer();
     } catch (err: any) {
-      this.resetError.set(err.message || 'Error al enviar código de verificación.');
+      this.resetError.set(err.message || 'Error al enviar enlace de verificación.');
     } finally {
       this.resetLoading.set(false);
     }
@@ -713,7 +745,63 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   async onResendCode(): Promise<void> {
     this.resetCode = '';
+    this.manualCodeOrUrl = '';
     await this.onSendResetCode();
+  }
+
+  extractOobCode(input: string): string {
+    if (!input) return '';
+    const clean = input.trim();
+    try {
+      if (clean.includes('oobCode=')) {
+        const urlObj = new URL(clean.startsWith('http') ? clean : `https://${clean}`);
+        const code = urlObj.searchParams.get('oobCode');
+        if (code) return code.trim();
+      }
+      if (clean.includes('code=')) {
+        const urlObj = new URL(clean.startsWith('http') ? clean : `https://${clean}`);
+        const code = urlObj.searchParams.get('code');
+        if (code) return code.trim();
+      }
+    } catch (_) {
+      const match = clean.match(/[?&]oobCode=([^&#]+)/);
+      if (match && match[1]) {
+        return decodeURIComponent(match[1]).trim();
+      }
+    }
+    return clean;
+  }
+
+  async onVerifyManualCode(): Promise<void> {
+    const raw = this.manualCodeOrUrl.trim();
+    if (!raw) {
+      this.resetError.set('Por favor pega el enlace o código que recibiste en tu correo.');
+      return;
+    }
+
+    const code = this.extractOobCode(raw);
+    if (!code) {
+      this.resetError.set('No se pudo identificar un código válido en el texto ingresado.');
+      return;
+    }
+
+    this.resetLoading.set(true);
+    this.resetError.set('');
+
+    try {
+      const email = await this.auth.verifyFirebaseResetCode(code);
+      this.oobCode = code;
+      if (email) {
+        this.resetEmail = email;
+      }
+      this.stopTimer();
+      this.resetStep.set(3);
+    } catch (err: any) {
+      console.warn('Error al verificar código manual:', err);
+      this.resetError.set(this.translateResetError(err.code || err.message));
+    } finally {
+      this.resetLoading.set(false);
+    }
   }
 
   async onVerifyCode(): Promise<void> {
@@ -742,11 +830,15 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   async onCompletePasswordReset(): Promise<void> {
     if (!this.newPassword || this.newPassword.length < 6) {
-      this.resetError.set('La contraseña debe tener al menos 6 caracteres.');
+      this.resetError.set('La nueva contraseña debe tener al menos 6 caracteres.');
       return;
     }
     if (this.newPassword !== this.confirmPassword) {
-      this.resetError.set('Las contraseñas no coinciden.');
+      this.resetError.set('Las contraseñas no coinciden. Por favor verifica que ambos campos sean idénticos.');
+      return;
+    }
+    if (!this.oobCode) {
+      this.resetError.set('No se detectó un código oficial de restablecimiento. Por favor haz clic en el enlace de tu correo o pégalo en el paso anterior.');
       return;
     }
 
@@ -754,14 +846,11 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.resetError.set('');
 
     try {
-      if (this.oobCode) {
-        await this.auth.confirmFirebasePasswordReset(this.oobCode, this.newPassword);
-      } else {
-        await this.auth.completePasswordReset(this.resetEmail, this.resetCode, this.newPassword);
-      }
+      await this.auth.confirmFirebasePasswordReset(this.oobCode, this.newPassword);
       this.resetStep.set(4);
     } catch (err: any) {
-      this.resetError.set(err.message || 'Error al guardar la nueva contraseña.');
+      console.error('Error al actualizar contraseña en Firebase:', err);
+      this.resetError.set(this.translateResetError(err.code || err.message));
     } finally {
       this.resetLoading.set(false);
     }
@@ -770,8 +859,30 @@ export class LoginComponent implements OnInit, OnDestroy {
   finishResetAndLogin(): void {
     this.email = this.resetEmail;
     this.password = '';
+    this.newPassword = '';
+    this.confirmPassword = '';
+    this.oobCode = '';
+    this.manualCodeOrUrl = '';
     this.closeResetModal();
-    this.mode = 'login';
+    this.setMode('login');
+  }
+
+  private translateResetError(err: string): string {
+    if (!err) return 'Ocurrió un error al procesar el restablecimiento.';
+    const lower = err.toLowerCase();
+    if (lower.includes('expired-action-code') || lower.includes('expired')) {
+      return 'El enlace o código de recuperación ha expirado. Por favor solicita uno nuevo.';
+    }
+    if (lower.includes('invalid-action-code') || lower.includes('invalid')) {
+      return 'El enlace o código de recuperación no es válido o ya fue utilizado.';
+    }
+    if (lower.includes('weak-password')) {
+      return 'La contraseña debe tener al menos 6 caracteres.';
+    }
+    if (lower.includes('user-not-found')) {
+      return 'No se encontró ningún usuario registrado con este correo.';
+    }
+    return err;
   }
 
   private translateError(err: string): string {

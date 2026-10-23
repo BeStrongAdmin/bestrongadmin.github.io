@@ -265,6 +265,9 @@ import { AuthService } from '../../services/auth.service';
                 [disabled]="changingPassword()"
               />
             </div>
+            <div *ngIf="newPassword && newPassword.length < 6" class="text-warning small mt-1" style="font-size: 0.78rem;">
+              <i class="bi bi-info-circle-fill me-1"></i> La contraseña debe tener al menos 6 caracteres.
+            </div>
           </div>
 
           <div class="mb-3">
@@ -284,6 +287,13 @@ import { AuthService } from '../../services/auth.service';
                 [disabled]="changingPassword()"
               />
             </div>
+            <!-- Aviso visual si las contraseñas no coinciden -->
+            <div *ngIf="confirmPassword && newPassword !== confirmPassword" class="text-danger small mt-1 fw-medium" style="font-size: 0.78rem;">
+              <i class="bi bi-x-circle-fill me-1"></i> Las contraseñas no coinciden.
+            </div>
+            <div *ngIf="confirmPassword && newPassword && newPassword === confirmPassword && newPassword.length >= 6" class="text-success small mt-1 fw-medium" style="font-size: 0.78rem;">
+              <i class="bi bi-check-circle-fill me-1"></i> Las contraseñas coinciden correctamente.
+            </div>
           </div>
 
           <div class="mb-3 text-end">
@@ -302,7 +312,7 @@ import { AuthService } from '../../services/auth.service';
             type="submit" 
             class="btn btn-success text-dark w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-2"
             style="border-radius: 12px; background-color: #00e676; border-color: #00e676;"
-            [disabled]="changingPassword() || (!auth.isGoogleUser() && !currentPassword) || !newPassword || newPassword.length < 6 || newPassword !== confirmPassword"
+            [disabled]="changingPassword() || (!auth.isGoogleUser() && !currentPassword) || !newPassword || !confirmPassword"
           >
             <span *ngIf="changingPassword()" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
             <span>{{ changingPassword() ? 'Actualizando...' : 'Actualizar Contraseña' }}</span>
@@ -434,7 +444,7 @@ export class SidebarComponent {
       return;
     }
     if (this.newPassword !== this.confirmPassword) {
-      this.changeError.set('Las nuevas contraseñas no coinciden.');
+      this.changeError.set('Las contraseñas no coinciden. Por favor verifica que ambos campos sean idénticos.');
       return;
     }
 

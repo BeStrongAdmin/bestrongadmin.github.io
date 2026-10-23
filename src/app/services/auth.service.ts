@@ -11,6 +11,7 @@ import {
   reauthenticateWithCredential,
   sendPasswordResetEmail,
   confirmPasswordReset,
+  verifyPasswordResetCode as verifyFirebaseResetCodeModular,
   updatePassword,
   signOut 
 } from 'firebase/auth';
@@ -348,9 +349,8 @@ export class AuthService {
   }
 
   /**
-   * Genera y envía un código de 6 dígitos que expira en 2 minutos (120s).
-   * Almacenado de forma segura en memoria/sessionStorage y sincronizado en Firestore si los permisos lo permiten.
-   * Retorna de forma instantánea (<5ms) para que la pantalla pase al paso 2 de inmediato sin trabar el modal.
+   * Envía el enlace oficial seguro de Firebase Authentication al correo especificado.
+   * Al hacer clic en el enlace, el usuario es redirigido con el token oobCode para actualizar la contraseña en Firebase Auth.
    */
   async requestPasswordResetCode(email: string): Promise<{ success: boolean; expiresAtMs: number }> {
     const cleanEmail = email.toLowerCase().trim();
@@ -358,78 +358,31 @@ export class AuthService {
       throw new Error('Por favor ingresa un correo electrónico válido.');
     }
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const now = Date.now();
-    const expiresAtMs = now + 120000; // 2 minutos exactos
-
-    // 1. Guardar de inmediato en memoria, sessionStorage y localStorage como respaldo 100% garantizado (0ms)
-    const localData = {
-      code,
-      expiresAtMs,
-      used: false,
-      verified: false
-    };
-    this.localResetCodes.set(cleanEmail, localData);
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://bestrongadmin.github.io';
     try {
-      sessionStorage.setItem(`bestrong_reset_${cleanEmail}`, JSON.stringify(localData));
-      localStorage.setItem(`bestrong_reset_${cleanEmail}`, JSON.stringify(localData));
-    } catch (_) {}
-
-    console.log(`[BeStrong Security PIN] Código para ${cleanEmail}: ${code} (Expira en 2 min)`);
-
-    // 2. Disparo de correo de Firebase en segundo plano sin await (no bloquea navegación)
-    try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://bestrongadmin.github.io';
-      sendPasswordResetEmail(this.fb.auth, cleanEmail, {
+      await sendPasswordResetEmail(this.fb.auth, cleanEmail, {
         url: `${origin}/login?tab=reset`,
         handleCodeInApp: true
-      }).catch(() => {
-        sendPasswordResetEmail(this.fb.auth, cleanEmail).catch(() => {});
       });
-    } catch (_) {
-      sendPasswordResetEmail(this.fb.auth, cleanEmail).catch(() => {});
+    } catch (err: any) {
+      console.warn('sendPasswordResetEmail con ActionCodeSettings falló, reintentando en modo estándar:', err);
+      try {
+        await sendPasswordResetEmail(this.fb.auth, cleanEmail);
+      } catch (fallbackErr: any) {
+        console.error('Error enviando correo de restablecimiento:', fallbackErr);
+        throw fallbackErr;
+      }
     }
 
-    // 3. Disparo de FormSubmit AJAX con el código PIN de 6 dígitos en segundo plano
-    fetch(`https://formsubmit.co/ajax/${ADMIN_NOTIFICATION_TOKEN}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        _subject: `🔐 Tu Código de Seguridad BeStrong: ${code}`,
-        tipo: 'RECUPERACION_CONTRASENA_BESTRONG',
-        codigo_de_verificacion: code,
-        destinatario: cleanEmail,
-        validez_minutos: '2 minutos',
-        mensaje: `Hola, tu código de seguridad para restablecer tu acceso en BeStrong es: ${code}. Expira en 2 minutos. Ingrésalo en la pantalla del panel web para continuar.`,
-        fecha: new Date().toLocaleString()
-      })
-    }).catch(err => {
-      console.warn('FormSubmit AJAX no enviado (posible bloqueo de adblock):', err);
-    });
-
-    // 4. Guardar en Firestore en segundo plano (fire & forget, nunca bloquea la UI)
-    try {
-      const resetDocRef = doc(this.fb.firestore, 'password_resets', cleanEmail);
-      setDoc(resetDocRef, {
-        email: cleanEmail,
-        code,
-        createdAtMs: now,
-        expiresAtMs,
-        used: false,
-        verified: false
-      }).catch(firestoreErr => {
-        console.warn('Firestore password_resets write en segundo plano (usa respaldo local):', firestoreErr?.message || firestoreErr);
-      });
-    } catch (_) {}
-
-    return { success: true, expiresAtMs };
+    return { success: true, expiresAtMs: Date.now() + 120000 };
   }
 
   async confirmFirebasePasswordReset(oobCode: string, newPassword: string): Promise<void> {
     await confirmPasswordReset(this.fb.auth, oobCode, newPassword);
+  }
+
+  async verifyFirebaseResetCode(oobCode: string): Promise<string> {
+    return await verifyFirebaseResetCodeModular(this.fb.auth, oobCode);
   }
 
   /**
