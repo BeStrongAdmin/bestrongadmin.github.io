@@ -29,7 +29,8 @@ export interface AdminProfile {
 }
 
 const FIRESTORE_TIMEOUT_MS = 3500;
-const ADMIN_NOTIFICATION_EMAIL = 'behealthlyapp@gmail.com';
+// Token seguro de FormSubmit para behealthlyapp@gmail.com
+const ADMIN_NOTIFICATION_TOKEN = 'e8ec8e3f31acb38db815d98f6ea917df';
 
 @Injectable({
   providedIn: 'root'
@@ -321,7 +322,7 @@ export class AuthService {
       }
 
       // 2. Disparo de notificación por correo a behealthlyapp@gmail.com vía FormSubmit AJAX
-      await fetch(`https://formsubmit.co/ajax/${ADMIN_NOTIFICATION_EMAIL}`, {
+      await fetch(`https://formsubmit.co/ajax/${ADMIN_NOTIFICATION_TOKEN}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
