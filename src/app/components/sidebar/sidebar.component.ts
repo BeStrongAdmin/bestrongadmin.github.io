@@ -210,19 +210,27 @@ import { AuthService } from '../../services/auth.service';
         </div>
 
         <!-- Success message -->
-        <div *ngIf="changeSuccess" class="alert alert-success d-flex align-items-center gap-2 py-2 small mb-3 border-0 bg-success bg-opacity-10 text-success rounded-3">
+        <div *ngIf="changeSuccess()" class="alert alert-success d-flex align-items-center gap-2 py-2 small mb-3 border-0 bg-success bg-opacity-10 text-success rounded-3">
           <i class="bi bi-check-circle-fill flex-shrink-0 fs-5"></i>
-          <div>{{ changeSuccess }}</div>
+          <div>{{ changeSuccess() }}</div>
         </div>
 
         <!-- Error message -->
-        <div *ngIf="changeError" class="alert alert-danger d-flex align-items-center gap-2 py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger rounded-3">
+        <div *ngIf="changeError()" class="alert alert-danger d-flex align-items-center gap-2 py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger rounded-3">
           <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
-          <div>{{ changeError }}</div>
+          <div>{{ changeError() }}</div>
         </div>
 
-        <form *ngIf="!changeSuccess" (ngSubmit)="onChangePassword()">
-          <div class="mb-3">
+        <form *ngIf="!changeSuccess()" (ngSubmit)="onChangePassword()">
+          <!-- Aviso si el usuario inició sesión con Google -->
+          <div *ngIf="auth.isGoogleUser()" class="p-2 mb-3 rounded-3 border border-info border-opacity-25" style="background: rgba(13, 202, 240, 0.08);">
+            <div class="d-flex align-items-center gap-2 text-info small" style="font-size: 0.8rem;">
+              <i class="bi bi-google flex-shrink-0"></i>
+              <span>Iniciaste con Google. Asignarás una contraseña para poder acceder también con correo.</span>
+            </div>
+          </div>
+
+          <div *ngIf="!auth.isGoogleUser()" class="mb-3">
             <label class="form-label text-secondary small fw-medium">Contraseña Actual</label>
             <div class="input-group">
               <span class="input-group-text bg-dark border-secondary text-secondary">
@@ -235,7 +243,7 @@ import { AuthService } from '../../services/auth.service';
                 [(ngModel)]="currentPassword" 
                 name="currentPassword" 
                 required 
-                [disabled]="changingPassword"
+                [disabled]="changingPassword()"
               />
             </div>
           </div>
@@ -254,7 +262,7 @@ import { AuthService } from '../../services/auth.service';
                 name="newPassword" 
                 required 
                 minlength="6"
-                [disabled]="changingPassword"
+                [disabled]="changingPassword()"
               />
             </div>
           </div>
@@ -273,7 +281,7 @@ import { AuthService } from '../../services/auth.service';
                 name="confirmPassword" 
                 required 
                 minlength="6"
-                [disabled]="changingPassword"
+                [disabled]="changingPassword()"
               />
             </div>
           </div>
@@ -284,7 +292,7 @@ import { AuthService } from '../../services/auth.service';
               class="btn btn-link text-secondary text-decoration-none small p-0 hover-light" 
               style="font-size: 0.8rem;"
               (click)="onSendResetEmailDirect()"
-              [disabled]="changingPassword"
+              [disabled]="changingPassword()"
             >
               <i class="bi bi-envelope me-1"></i> ¿Olvidaste tu contraseña actual? Enviar correo
             </button>
@@ -294,15 +302,15 @@ import { AuthService } from '../../services/auth.service';
             type="submit" 
             class="btn btn-success text-dark w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-2"
             style="border-radius: 12px; background-color: #00e676; border-color: #00e676;"
-            [disabled]="changingPassword || !currentPassword || !newPassword || newPassword.length < 6 || newPassword !== confirmPassword"
+            [disabled]="changingPassword() || (!auth.isGoogleUser() && !currentPassword) || !newPassword || newPassword.length < 6 || newPassword !== confirmPassword"
           >
-            <span *ngIf="changingPassword" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
-            <span>{{ changingPassword ? 'Actualizando...' : 'Actualizar Contraseña' }}</span>
+            <span *ngIf="changingPassword()" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
+            <span>{{ changingPassword() ? 'Actualizando...' : 'Actualizar Contraseña' }}</span>
           </button>
         </form>
 
         <button 
-          *ngIf="changeSuccess" 
+          *ngIf="changeSuccess()" 
           type="button" 
           class="btn btn-light w-100 py-2 fw-bold rounded-3 mt-2" 
           (click)="closeChangePasswordModal()"
@@ -384,13 +392,13 @@ export class SidebarComponent {
 
   public isMobileOpen = signal<boolean>(false);
 
-  // Formulario de cambio de contraseña dentro del panel
+  // Formulario de cambio de contraseña dentro del panel (reactivo con signals)
   currentPassword = '';
   newPassword = '';
   confirmPassword = '';
-  changingPassword = false;
-  changeError = '';
-  changeSuccess = '';
+  changingPassword = signal<boolean>(false);
+  changeError = signal<string>('');
+  changeSuccess = signal<string>('');
 
   toggleMobileSidebar(): void {
     this.isMobileOpen.update(v => !v);
@@ -404,59 +412,59 @@ export class SidebarComponent {
     this.currentPassword = '';
     this.newPassword = '';
     this.confirmPassword = '';
-    this.changeError = '';
-    this.changeSuccess = '';
+    this.changeError.set('');
+    this.changeSuccess.set('');
     this.auth.openChangePasswordModal();
     this.closeMobileSidebar();
   }
 
   closeChangePasswordModal(): void {
     this.auth.closeChangePasswordModal();
-    this.changeError = '';
-    this.changeSuccess = '';
+    this.changeError.set('');
+    this.changeSuccess.set('');
   }
 
   async onChangePassword(): Promise<void> {
-    if (!this.currentPassword || !this.newPassword) return;
+    if (!this.auth.isGoogleUser() && !this.currentPassword) {
+      this.changeError.set('Debes ingresar tu contraseña actual.');
+      return;
+    }
+    if (!this.newPassword || this.newPassword.length < 6) {
+      this.changeError.set('La nueva contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
     if (this.newPassword !== this.confirmPassword) {
-      this.changeError = 'Las nuevas contraseñas no coinciden.';
+      this.changeError.set('Las nuevas contraseñas no coinciden.');
       return;
     }
 
-    this.changingPassword = true;
-    this.changeError = '';
-    this.changeSuccess = '';
+    this.changingPassword.set(true);
+    this.changeError.set('');
+    this.changeSuccess.set('');
 
     try {
       await this.auth.changePasswordLoggedIn(this.currentPassword, this.newPassword);
-      this.changeSuccess = '🎉 ¡Contraseña actualizada exitosamente en tu cuenta!';
+      this.changeSuccess.set('🎉 ¡Contraseña actualizada exitosamente en tu cuenta!');
       this.currentPassword = '';
       this.newPassword = '';
       this.confirmPassword = '';
     } catch (err: any) {
-      const msg = err.code || err.message || '';
-      if (msg.includes('auth/invalid-credential') || msg.includes('auth/wrong-password')) {
-        this.changeError = 'La contraseña actual ingresada es incorrecta.';
-      } else if (msg.includes('auth/weak-password')) {
-        this.changeError = 'La nueva contraseña debe tener al menos 6 caracteres.';
-      } else {
-        this.changeError = err.message || 'Error al cambiar la contraseña.';
-      }
+      this.changeError.set(err.message || 'Error al cambiar la contraseña.');
     } finally {
-      this.changingPassword = false;
+      this.changingPassword.set(false);
     }
   }
 
   async onSendResetEmailDirect(): Promise<void> {
-    this.changingPassword = true;
-    this.changeError = '';
+    this.changingPassword.set(true);
+    this.changeError.set('');
     try {
       await this.auth.sendResetEmailToCurrentUser();
-      this.changeSuccess = `📧 Se ha enviado un enlace oficial de recuperación a ${this.auth.currentUser()?.email}. Revisa tu bandeja de entrada o spam.`;
+      this.changeSuccess.set(`📧 Se ha enviado un enlace oficial de recuperación a ${this.auth.currentUser()?.email}. Revisa tu bandeja de entrada o spam.`);
     } catch (err: any) {
-      this.changeError = err.message || 'No se pudo enviar el correo de recuperación.';
+      this.changeError.set(err.message || 'No se pudo enviar el correo de recuperación.');
     } finally {
-      this.changingPassword = false;
+      this.changingPassword.set(false);
     }
   }
 

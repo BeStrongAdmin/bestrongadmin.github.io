@@ -521,6 +521,14 @@ export class AuthService {
     }
   }
 
+  isGoogleUser(): boolean {
+    const user = this.fb.auth.currentUser;
+    if (!user) return false;
+    const hasGoogle = user.providerData.some(p => p.providerId === 'google.com');
+    const hasPassword = user.providerData.some(p => p.providerId === 'password');
+    return hasGoogle && !hasPassword;
+  }
+
   /**
    * Cambia la contraseña directamente cuando el usuario está logueado dentro del Dashboard
    */
@@ -534,12 +542,32 @@ export class AuthService {
       throw new Error('La nueva contraseña debe tener al menos 6 caracteres.');
     }
 
-    // 1. Re-autenticar con la contraseña actual para verificar identidad
-    const credential = EmailAuthProvider.credential(user.email, currentPassword);
-    await reauthenticateWithCredential(user, credential);
+    const hasPassword = user.providerData.some(p => p.providerId === 'password');
 
-    // 2. Actualizar contraseña directamente en Firebase Auth
-    await updatePassword(user, newPassword);
+    // Si el usuario tiene proveedor de contraseña, re-autenticar con la contraseña actual
+    if (hasPassword && currentPassword) {
+      try {
+        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+        await reauthenticateWithCredential(user, credential);
+      } catch (err: any) {
+        const code = (err.code || err.message || '').toLowerCase();
+        if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('invalid_password') || code.includes('bad request') || code.includes('400')) {
+          throw new Error('La contraseña actual ingresada es incorrecta. Si no la recuerdas, pulsa "¿Olvidaste tu contraseña actual?" abajo para enviarte un enlace a tu correo.');
+        }
+        throw err;
+      }
+    }
+
+    // Actualizar contraseña directamente en Firebase Auth
+    try {
+      await updatePassword(user, newPassword);
+    } catch (err: any) {
+      const code = (err.code || err.message || '').toLowerCase();
+      if (code.includes('requires-recent-login')) {
+        throw new Error('Por seguridad de Firebase, debes volver a iniciar sesión antes de cambiar tu contraseña.');
+      }
+      throw err;
+    }
   }
 
   /**
