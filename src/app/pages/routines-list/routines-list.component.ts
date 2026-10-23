@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -29,9 +29,9 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
         </div>
 
         <!-- Feedback Alert -->
-        <div *ngIf="feedbackMsg" class="alert alert-info alert-dismissible fade show border-0 bg-info bg-opacity-10 text-info py-2 small rounded-3" role="alert">
-          {{ feedbackMsg }}
-          <button type="button" class="btn-close btn-close-white" (click)="feedbackMsg = ''"></button>
+        <div *ngIf="feedbackMsg()" class="alert alert-info alert-dismissible fade show border-0 bg-info bg-opacity-10 text-info py-2 small rounded-3" role="alert">
+          {{ feedbackMsg() }}
+          <button type="button" class="btn-close btn-close-white" (click)="feedbackMsg.set('')"></button>
         </div>
 
         <!-- Search Bar -->
@@ -61,12 +61,12 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
 
         <!-- Routines Table -->
         <div class="card border-0 rounded-4 panel-card overflow-hidden">
-          <div *ngIf="loading" class="text-center py-5">
+          <div *ngIf="loading()" class="text-center py-5">
             <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
             <div class="small text-secondary mt-2">Cargando rutinas...</div>
           </div>
 
-          <div *ngIf="!loading" class="table-responsive">
+          <div *ngIf="!loading()" class="table-responsive">
             <table class="table table-hover align-middle mb-0 custom-table">
               <thead>
                 <tr>
@@ -80,7 +80,7 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let r of cachedFilteredRoutines; trackBy: trackByCode">
+                <tr *ngFor="let r of cachedFilteredRoutines(); trackBy: trackByCode">
                   <td class="ps-4">
                     <span class="code-badge font-monospace">
                       {{ r.code }}
@@ -111,7 +111,7 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                     </div>
                   </td>
                 </tr>
-                <tr *ngIf="cachedFilteredRoutines.length === 0">
+                <tr *ngIf="cachedFilteredRoutines().length === 0">
                   <td colspan="7" class="text-center py-5 text-secondary small">
                     No se encontraron rutinas registradas.
                   </td>
@@ -124,15 +124,15 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
     </div>
 
     <!-- MODAL: View Routine Detail -->
-    <div *ngIf="selectedRoutine" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);">
+    <div *ngIf="selectedRoutine()" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content border-0 rounded-4 panel-card shadow-2xl">
           <div class="modal-header border-bottom border-dark px-4 py-3">
             <div>
-              <h6 class="modal-title fw-bold text-light mb-0">{{ selectedRoutine.routineName }}</h6>
-              <small class="text-secondary">Código: <span class="text-success font-monospace fw-bold">{{ selectedRoutine.code }}</span> &bull; {{ selectedRoutine.daysCount }} Días</small>
+              <h6 class="modal-title fw-bold text-light mb-0">{{ selectedRoutine()?.routineName }}</h6>
+              <small class="text-secondary">Código: <span class="text-success font-monospace fw-bold">{{ selectedRoutine()?.code }}</span> &bull; {{ selectedRoutine()?.daysCount }} Días</small>
             </div>
-            <button type="button" class="btn-close btn-close-white" (click)="selectedRoutine = null"></button>
+            <button type="button" class="btn-close btn-close-white" (click)="selectedRoutine.set(null)"></button>
           </div>
 
           <!-- Modal Tabs -->
@@ -142,8 +142,8 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                 <button 
                   type="button" 
                   class="btn btn-sm px-3 py-1 rounded-3"
-                  [ngClass]="modalTab === 'exercises' ? 'btn-light text-dark fw-bold' : 'btn-outline-secondary text-secondary'"
-                  (click)="modalTab = 'exercises'"
+                  [ngClass]="modalTab() === 'exercises' ? 'btn-light text-dark fw-bold' : 'btn-outline-secondary text-secondary'"
+                  (click)="modalTab.set('exercises')"
                 >
                   <i class="bi bi-list-check me-1"></i> Ejercicios Biomecánicos
                 </button>
@@ -152,10 +152,10 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                 <button 
                   type="button" 
                   class="btn btn-sm px-3 py-1 rounded-3"
-                  [ngClass]="modalTab === 'trainees' ? 'btn-success text-dark fw-bold' : 'btn-outline-secondary text-secondary'"
-                  (click)="modalTab = 'trainees'"
+                  [ngClass]="modalTab() === 'trainees' ? 'btn-success text-dark fw-bold' : 'btn-outline-secondary text-secondary'"
+                  (click)="modalTab.set('trainees')"
                 >
-                  <i class="bi bi-people-fill me-1"></i> Atletas que la Usan ({{ selectedRoutine.trainees?.length || selectedRoutine.timesRedeemed || 0 }})
+                  <i class="bi bi-people-fill me-1"></i> Atletas que la Usan ({{ selectedRoutine()?.trainees?.length || selectedRoutine()?.timesRedeemed || 0 }})
                 </button>
               </li>
             </ul>
@@ -163,8 +163,8 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
 
           <div class="modal-body p-4">
             <!-- TAB 1: Ejercicios -->
-            <div *ngIf="modalTab === 'exercises'">
-              <div *ngFor="let day of selectedRoutine.routine?.days" class="card border-0 rounded-3 mb-3 p-3" style="background-color: #12141c;">
+            <div *ngIf="modalTab() === 'exercises'">
+              <div *ngFor="let day of selectedRoutine()?.routine?.days" class="card border-0 rounded-3 mb-3 p-3" style="background-color: #12141c;">
                 <h6 class="fw-bold text-success mb-2 small text-uppercase">{{ day.name }}</h6>
                 <div class="table-responsive">
                   <table class="table table-sm table-borderless align-middle mb-0">
@@ -190,8 +190,8 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
             </div>
 
             <!-- TAB 2: Atletas que la usan -->
-            <div *ngIf="modalTab === 'trainees'">
-              <div *ngIf="selectedRoutine.trainees && selectedRoutine.trainees.length > 0" class="table-responsive">
+            <div *ngIf="modalTab() === 'trainees'">
+              <div *ngIf="selectedRoutine()?.trainees && (selectedRoutine()?.trainees)!.length > 0" class="table-responsive">
                 <table class="table table-hover align-middle mb-0 custom-table">
                   <thead>
                     <tr>
@@ -201,7 +201,7 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let t of selectedRoutine.trainees">
+                    <tr *ngFor="let t of selectedRoutine()?.trainees">
                       <td class="ps-3">
                         <div class="d-flex align-items-center gap-2">
                           <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center text-light fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
@@ -220,17 +220,17 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                 </table>
               </div>
 
-              <div *ngIf="!selectedRoutine.trainees || selectedRoutine.trainees.length === 0" class="p-4 text-center rounded-3" style="background: rgba(255,255,255,0.02);">
+              <div *ngIf="!selectedRoutine()?.trainees || (selectedRoutine()?.trainees)!.length === 0" class="p-4 text-center rounded-3" style="background: rgba(255,255,255,0.02);">
                 <i class="bi bi-person-check fs-1 text-secondary opacity-50 mb-2 d-block"></i>
-                <h6 class="fw-bold text-light mb-1">{{ selectedRoutine.timesRedeemed }} Atleta(s) han canjeado esta rutina</h6>
+                <h6 class="fw-bold text-light mb-1">{{ selectedRoutine()?.timesRedeemed }} Atleta(s) han canjeado esta rutina</h6>
                 <p class="text-secondary small mb-0" style="max-width: 480px; margin: 0 auto; line-height: 1.5;">
-                  Los canjes están contabilizados. Conforme los atletas canjeen el código <strong class="text-success font-monospace">{{ selectedRoutine.code }}</strong> en la app móvil, verás aquí su nombre, correo y fecha exacta de activación.
+                  Los canjes están contabilizados. Conforme los atletas canjeen el código <strong class="text-success font-monospace">{{ selectedRoutine()?.code }}</strong> en la app móvil, verás aquí su nombre, correo y fecha exacta de activación.
                 </p>
               </div>
             </div>
           </div>
           <div class="modal-footer border-top border-dark px-4 py-2">
-            <button type="button" class="btn btn-secondary btn-sm rounded-3" (click)="selectedRoutine = null">Cerrar</button>
+            <button type="button" class="btn btn-secondary btn-sm rounded-3" (click)="selectedRoutine.set(null)">Cerrar</button>
           </div>
         </div>
       </div>
@@ -272,14 +272,15 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
 export class RoutinesListComponent implements OnInit {
   public auth = inject(AuthService);
   private routineService = inject(RoutineService);
+  private cdr = inject(ChangeDetectorRef);
 
-  routines: AssignedRoutineRecord[] = [];
-  cachedFilteredRoutines: AssignedRoutineRecord[] = [];
-  loading = true;
+  routines = signal<AssignedRoutineRecord[]>([]);
+  cachedFilteredRoutines = signal<AssignedRoutineRecord[]>([]);
+  loading = signal<boolean>(true);
   searchQuery = '';
-  feedbackMsg = '';
-  selectedRoutine: AssignedRoutineRecord | null = null;
-  modalTab: 'exercises' | 'trainees' = 'exercises';
+  feedbackMsg = signal<string>('');
+  selectedRoutine = signal<AssignedRoutineRecord | null>(null);
+  modalTab = signal<'exercises' | 'trainees'>('exercises');
 
   async ngOnInit(): Promise<void> {
     await this.loadRoutines();
@@ -290,48 +291,56 @@ export class RoutinesListComponent implements OnInit {
   }
 
   async loadRoutines(): Promise<void> {
-    this.loading = true;
+    this.loading.set(true);
     try {
       const isSuper = this.auth.currentUser()?.isSuperAdmin;
       const uid = this.auth.currentUser()?.uid;
-      this.routines = await Promise.race([
+      const res = await Promise.race([
         this.routineService.listRoutines(uid, isSuper),
         new Promise<AssignedRoutineRecord[]>((_, reject) => setTimeout(() => reject(new Error('Timeout de rutinas')), 4000))
       ]);
+      this.routines.set(res);
       this.onSearchChange();
     } catch (err: any) {
-      this.feedbackMsg = err.message || 'Error al cargar rutinas.';
-      this.routines = [];
-      this.cachedFilteredRoutines = [];
+      this.feedbackMsg.set(err.message || 'Error al cargar rutinas.');
+      this.routines.set([]);
+      this.cachedFilteredRoutines.set([]);
     } finally {
-      this.loading = false;
+      this.loading.set(false);
+      this.cdr.markForCheck();
     }
   }
 
   onSearchChange(): void {
     const q = this.searchQuery.toLowerCase().trim();
+    const all = this.routines();
     if (!q) {
-      this.cachedFilteredRoutines = this.routines;
+      this.cachedFilteredRoutines.set(all);
+      this.cdr.markForCheck();
       return;
     }
-    this.cachedFilteredRoutines = this.routines.filter(r => 
+    this.cachedFilteredRoutines.set(all.filter(r => 
       r.code.toLowerCase().includes(q) || 
       r.routineName.toLowerCase().includes(q) ||
       (r.createdByName && r.createdByName.toLowerCase().includes(q))
-    );
+    ));
+    this.cdr.markForCheck();
   }
 
   copyCode(code: string): void {
     navigator.clipboard.writeText(code);
-    this.feedbackMsg = `¡Código "${code}" copiado al portapapeles!`;
+    this.feedbackMsg.set(`¡Código "${code}" copiado al portapapeles!`);
     setTimeout(() => {
-      this.feedbackMsg = '';
+      this.feedbackMsg.set('');
+      this.cdr.markForCheck();
     }, 4000);
+    this.cdr.markForCheck();
   }
 
   viewDetail(routine: AssignedRoutineRecord): void {
-    this.selectedRoutine = routine;
-    this.modalTab = 'exercises';
+    this.selectedRoutine.set(routine);
+    this.modalTab.set('exercises');
+    this.cdr.markForCheck();
   }
 
   async deleteRoutine(code: string): Promise<void> {
@@ -340,11 +349,13 @@ export class RoutinesListComponent implements OnInit {
     }
     try {
       await this.routineService.deleteRoutine(code);
-      this.routines = this.routines.filter(r => r.code !== code);
+      this.routines.update(list => list.filter(r => r.code !== code));
       this.onSearchChange();
-      this.feedbackMsg = `Rutina ${code} eliminada del servidor.`;
+      this.feedbackMsg.set(`Rutina ${code} eliminada del servidor.`);
     } catch (err: any) {
       alert(err.message || 'Error al eliminar rutina.');
+    } finally {
+      this.cdr.markForCheck();
     }
   }
 }

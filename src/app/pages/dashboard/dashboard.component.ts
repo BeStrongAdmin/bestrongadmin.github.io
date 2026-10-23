@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
@@ -73,30 +73,30 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
                   class="btn btn-success text-dark fw-bold px-4 py-2 w-100 d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-sm"
                   style="background-color: #00e676; border-color: #00e676;"
                   (click)="onRequestAccess()"
-                  [disabled]="requestingAccess"
+                  [disabled]="requestingAccess()"
                 >
-                  <span *ngIf="requestingAccess" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
-                  <i *ngIf="!requestingAccess" class="bi bi-person-check-fill"></i>
+                  <span *ngIf="requestingAccess()" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
+                  <i *ngIf="!requestingAccess()" class="bi bi-person-check-fill"></i>
                   <span>Convertirme en Coach (Activar Acceso)</span>
                 </button>
               </div>
             </div>
 
             <!-- Feedback message -->
-            <div *ngIf="requestFeedback" class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 small mt-3 mb-0 border-0 bg-success bg-opacity-10 text-success rounded-3">
+            <div *ngIf="requestFeedback()" class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 small mt-3 mb-0 border-0 bg-success bg-opacity-10 text-success rounded-3">
               <i class="bi bi-check-circle-fill flex-shrink-0"></i>
-              <div>{{ requestFeedback }}</div>
+              <div>{{ requestFeedback() }}</div>
             </div>
           </div>
         </div>
 
         <!-- Loading State -->
-        <div *ngIf="loading" class="text-center py-5">
+        <div *ngIf="loading()" class="text-center py-5">
           <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
           <div class="small text-secondary mt-2">Cargando métricas del sistema...</div>
         </div>
 
-        <div *ngIf="!loading">
+        <div *ngIf="!loading()">
           <!-- Minimalist KPI Cards (Black tones & Icons) -->
           <div class="row g-3 mb-4">
             <div class="col-12 col-sm-6 col-xl-3">
@@ -104,7 +104,7 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
                 <div class="d-flex justify-content-between align-items-start">
                   <div>
                     <div class="text-secondary small fw-medium mb-1">Rutinas en Servidor</div>
-                    <div class="h3 fw-bold text-light mb-0">{{ totalRoutines }}</div>
+                    <div class="h3 fw-bold text-light mb-0">{{ totalRoutines() }}</div>
                   </div>
                   <div class="icon-box rounded-3 text-secondary">
                     <i class="bi bi-collection fs-5"></i>
@@ -118,7 +118,7 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
                 <div class="d-flex justify-content-between align-items-start">
                   <div>
                     <div class="text-secondary small fw-medium mb-1">Atletas Entrenando</div>
-                    <div class="h3 fw-bold text-light mb-0">{{ totalTrainees }}</div>
+                    <div class="h3 fw-bold text-light mb-0">{{ totalTrainees() }}</div>
                   </div>
                   <div class="icon-box rounded-3 text-secondary">
                     <i class="bi bi-person-check fs-5"></i>
@@ -132,7 +132,7 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
                 <div class="d-flex justify-content-between align-items-start">
                   <div>
                     <div class="text-secondary small fw-medium mb-1">Mis Rutinas Creadas</div>
-                    <div class="h3 fw-bold text-light mb-0">{{ myRoutinesCount }}</div>
+                    <div class="h3 fw-bold text-light mb-0">{{ myRoutinesCount() }}</div>
                   </div>
                   <div class="icon-box rounded-3 text-secondary">
                     <i class="bi bi-journal-code fs-5"></i>
@@ -146,7 +146,7 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
                 <div class="d-flex justify-content-between align-items-start">
                   <div>
                     <div class="text-secondary small fw-medium mb-1">Entrenadores Activos</div>
-                    <div class="h3 fw-bold text-light mb-0">{{ adminsList.length + 1 }}</div>
+                    <div class="h3 fw-bold text-light mb-0">{{ adminsList().length + 1 }}</div>
                   </div>
                   <div class="icon-box rounded-3 text-secondary">
                     <i class="bi bi-shield-check fs-5"></i>
@@ -187,13 +187,13 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
                     </td>
                     <td><span class="badge badge-subtle">Superadmin</span></td>
                     <td><span class="badge badge-active">Activo</span></td>
-                    <td class="text-center fw-bold text-light">{{ superAdminRoutinesCount }}</td>
-                    <td class="text-center fw-bold text-light">{{ superAdminTraineesCount }}</td>
+                    <td class="text-center fw-bold text-light">{{ superAdminRoutinesCount() }}</td>
+                    <td class="text-center fw-bold text-light">{{ superAdminTraineesCount() }}</td>
                     <td class="text-end pe-4 small text-secondary">Fundador</td>
                   </tr>
 
                   <!-- Additional admins -->
-                  <tr *ngFor="let adm of adminsList; trackBy: trackByAdminUid">
+                  <tr *ngFor="let adm of adminsList(); trackBy: trackByAdminUid">
                     <td class="ps-4">
                       <div class="fw-semibold text-light">{{ adm.name }}</div>
                       <div class="small text-secondary">{{ adm.email }}</div>
@@ -209,7 +209,7 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
                     <td class="text-end pe-4 small text-secondary">{{ adm.createdAt | date:'shortDate' }}</td>
                   </tr>
 
-                  <tr *ngIf="adminsList.length === 0">
+                  <tr *ngIf="adminsList().length === 0">
                     <td colspan="6" class="text-center py-4 text-secondary small">
                       No has agregado administradores secundarios. Puedes autorizar atletas desde la pestaña "Administradores".
                     </td>
@@ -243,7 +243,7 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let r of recentRoutines; trackBy: trackByRoutineCode">
+                  <tr *ngFor="let r of recentRoutines(); trackBy: trackByRoutineCode">
                     <td class="ps-4">
                       <span class="code-badge font-monospace">
                         {{ r.code }}
@@ -259,7 +259,7 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
                     </td>
                     <td class="text-end pe-4 small text-secondary">{{ r.expiresAtMs | date:'mediumDate' }}</td>
                   </tr>
-                  <tr *ngIf="recentRoutines.length === 0">
+                  <tr *ngIf="recentRoutines().length === 0">
                     <td colspan="6" class="text-center py-5 text-secondary small">
                       Aún no se han generado rutinas asignadas en el servidor.
                     </td>
@@ -339,17 +339,18 @@ export class DashboardComponent implements OnInit {
   public auth = inject(AuthService);
   private routineService = inject(RoutineService);
   private userMgmt = inject(UserManagementService);
+  private cdr = inject(ChangeDetectorRef);
 
-  loading = true;
-  requestingAccess = false;
-  requestFeedback = '';
-  totalRoutines = 0;
-  totalTrainees = 0;
-  myRoutinesCount = 0;
-  superAdminRoutinesCount = 0;
-  superAdminTraineesCount = 0;
-  adminsList: AdminUserRecord[] = [];
-  recentRoutines: AssignedRoutineRecord[] = [];
+  loading = signal<boolean>(true);
+  requestingAccess = signal<boolean>(false);
+  requestFeedback = signal<string>('');
+  totalRoutines = signal<number>(0);
+  totalTrainees = signal<number>(0);
+  myRoutinesCount = signal<number>(0);
+  superAdminRoutinesCount = signal<number>(0);
+  superAdminTraineesCount = signal<number>(0);
+  adminsList = signal<AdminUserRecord[]>([]);
+  recentRoutines = signal<AssignedRoutineRecord[]>([]);
 
   async ngOnInit(): Promise<void> {
     await this.loadMetrics();
@@ -364,7 +365,7 @@ export class DashboardComponent implements OnInit {
   }
 
   async loadMetrics(): Promise<void> {
-    this.loading = true;
+    this.loading.set(true);
     try {
       const user = this.auth.currentUser();
       const isSuper = user?.isSuperAdmin;
@@ -376,19 +377,19 @@ export class DashboardComponent implements OnInit {
           this.routineService.listRoutines(uid, isSuper),
           new Promise<AssignedRoutineRecord[]>((_, reject) => setTimeout(() => reject(new Error('Timeout rutinas')), 3500))
         ]);
-        this.totalRoutines = routines.length;
-        this.totalTrainees = routines.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0);
-        this.recentRoutines = routines.slice(0, 5);
+        this.totalRoutines.set(routines.length);
+        this.totalTrainees.set(routines.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0));
+        this.recentRoutines.set(routines.slice(0, 5));
 
         if (uid) {
           const myR = routines.filter(r => r.createdBy === uid);
-          this.myRoutinesCount = myR.length;
+          this.myRoutinesCount.set(myR.length);
         }
 
         if (isSuper && uid) {
           const superR = routines.filter(r => r.createdBy === uid);
-          this.superAdminRoutinesCount = superR.length;
-          this.superAdminTraineesCount = superR.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0);
+          this.superAdminRoutinesCount.set(superR.length);
+          this.superAdminTraineesCount.set(superR.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0));
         }
       } catch (errRoutines) {
         console.warn('Carga de rutinas no disponible o en timeout:', errRoutines);
@@ -397,7 +398,7 @@ export class DashboardComponent implements OnInit {
       if (isSuper) {
         try {
           const allAdmins = await this.userMgmt.listAdmins();
-          this.adminsList = allAdmins.filter(a => a.uid !== uid);
+          this.adminsList.set(allAdmins.filter(a => a.uid !== uid));
         } catch (errAdmins) {
           console.warn('Carga de admins no disponible:', errAdmins);
         }
@@ -405,22 +406,24 @@ export class DashboardComponent implements OnInit {
     } catch (err) {
       console.error('Error cargando métricas:', err);
     } finally {
-      this.loading = false;
+      this.loading.set(false);
+      this.cdr.markForCheck();
     }
   }
 
   async onRequestAccess(): Promise<void> {
-    this.requestingAccess = true;
-    this.requestFeedback = '';
+    this.requestingAccess.set(true);
+    this.requestFeedback.set('');
     try {
       await this.auth.requestAdminAccess();
       const userEmail = this.auth.currentUser()?.email || 'tu correo';
-      this.requestFeedback = `🎉 ¡Acceso activado de inmediato! Se notificó a behealthlyapp@gmail.com (${userEmail}). Ya cuentas con permisos completos de Coach.`;
+      this.requestFeedback.set(`🎉 ¡Acceso activado de inmediato! Se notificó a behealthlyapp@gmail.com (${userEmail}). Ya cuentas con permisos completos de Coach.`);
       await this.loadMetrics();
     } catch (err: any) {
-      this.requestFeedback = err.message || 'Error activando acceso. Por favor intenta de nuevo.';
+      this.requestFeedback.set(err.message || 'Error activando acceso. Por favor intenta de nuevo.');
     } finally {
-      this.requestingAccess = false;
+      this.requestingAccess.set(false);
+      this.cdr.markForCheck();
     }
   }
 }

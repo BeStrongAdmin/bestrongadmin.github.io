@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
@@ -749,6 +749,7 @@ interface ManualExerciseForm {
 export class RoutineGeneratorComponent implements OnInit {
   private auth = inject(AuthService);
   private routineService = inject(RoutineService);
+  private cdr = inject(ChangeDetectorRef);
   exercisesService = inject(ExercisesService);
 
   // Generator Mode: 'preset' = Biomechanical, 'custom' = Free Custom Routine
@@ -1315,6 +1316,7 @@ export class RoutineGeneratorComponent implements OnInit {
       this.errorMessage = err.message || 'Error guardando la rutina en Firestore.';
     } finally {
       this.isSaving = false;
+      this.cdr.markForCheck();
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
@@ -23,9 +23,9 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
         </div>
 
         <!-- Feedback Alert -->
-        <div *ngIf="feedbackMsg" class="alert alert-info alert-dismissible fade show border-0 bg-info bg-opacity-10 text-info py-2 small rounded-3" role="alert">
-          {{ feedbackMsg }}
-          <button type="button" class="btn-close btn-close-white" (click)="feedbackMsg = ''"></button>
+        <div *ngIf="feedbackMsg()" class="alert alert-info alert-dismissible fade show border-0 bg-info bg-opacity-10 text-info py-2 small rounded-3" role="alert">
+          {{ feedbackMsg() }}
+          <button type="button" class="btn-close btn-close-white" (click)="feedbackMsg.set('')"></button>
         </div>
 
         <!-- Navigation Tabs -->
@@ -34,19 +34,19 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
             <button 
               type="button"
               class="tab-btn btn btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0" 
-              [class.active-tab]="activeTab === 'admins'" 
-              (click)="activeTab = 'admins'"
+              [class.active-tab]="activeTab() === 'admins'" 
+              (click)="activeTab.set('admins')"
             >
               <i class="bi bi-shield-check"></i>
-              <span>Entrenadores Activos ({{ admins.length }})</span>
+              <span>Entrenadores Activos ({{ admins().length }})</span>
             </button>
           </li>
           <li class="nav-item">
             <button 
               type="button"
               class="tab-btn btn btn-sm d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0" 
-              [class.active-tab]="activeTab === 'users'" 
-              (click)="activeTab = 'users'"
+              [class.active-tab]="activeTab() === 'users'" 
+              (click)="activeTab.set('users')"
             >
               <i class="bi bi-person-plus"></i>
               <span>Promover Atleta de la App</span>
@@ -55,14 +55,14 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
         </ul>
 
         <!-- TAB 1: Current Admins -->
-        <div *ngIf="activeTab === 'admins'">
+        <div *ngIf="activeTab() === 'admins'">
           <div class="card border-0 rounded-4 panel-card overflow-hidden">
-            <div *ngIf="loadingAdmins" class="text-center py-5">
+            <div *ngIf="loadingAdmins()" class="text-center py-5">
               <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
               <div class="small text-secondary mt-2">Cargando entrenadores del sistema...</div>
             </div>
 
-            <div *ngIf="!loadingAdmins" class="table-responsive">
+            <div *ngIf="!loadingAdmins()" class="table-responsive">
               <table class="table table-hover align-middle mb-0 custom-table">
                 <thead>
                   <tr>
@@ -91,7 +91,7 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
                   </tr>
 
                   <!-- Additional admins -->
-                  <tr *ngFor="let adm of admins; trackBy: trackByAdminUid" [class.table-warning-bg]="!adm.active && adm.requestStatus === 'pending'">
+                  <tr *ngFor="let adm of admins(); trackBy: trackByAdminUid" [class.table-warning-bg]="!adm.active && adm.requestStatus === 'pending'">
                     <td class="ps-4">
                       <div class="fw-semibold text-light">{{ adm.name }}</div>
                       <div *ngIf="adm.phone" class="small text-secondary">
@@ -140,7 +140,7 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
                     </td>
                   </tr>
 
-                  <tr *ngIf="admins.length === 0">
+                  <tr *ngIf="admins().length === 0">
                     <td colspan="7" class="text-center py-5 text-secondary small">
                       No hay entrenadores adicionales registrados. Ve a la pestaña "Promover Atleta de la App".
                     </td>
@@ -152,7 +152,7 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
         </div>
 
         <!-- TAB 2: App Users list to promote -->
-        <div *ngIf="activeTab === 'users'">
+        <div *ngIf="activeTab() === 'users'">
           <div class="card p-3 rounded-4 border-0 panel-card mb-4">
             <div class="row g-2 align-items-center">
               <div class="col-12 col-md-8">
@@ -178,12 +178,12 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
           </div>
 
           <div class="card border-0 rounded-4 panel-card overflow-hidden">
-            <div *ngIf="loadingUsers" class="text-center py-5">
+            <div *ngIf="loadingUsers()" class="text-center py-5">
               <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
               <div class="small text-secondary mt-2">Cargando atletas registrados en la app móvil...</div>
             </div>
 
-            <div *ngIf="!loadingUsers" class="table-responsive">
+            <div *ngIf="!loadingUsers()" class="table-responsive">
               <table class="table table-hover align-middle mb-0 custom-table">
                 <thead>
                   <tr>
@@ -195,7 +195,7 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let u of cachedFilteredAppUsers; trackBy: trackByUserUid">
+                  <tr *ngFor="let u of cachedFilteredAppUsers(); trackBy: trackByUserUid">
                     <td class="ps-4">
                       <div class="d-flex align-items-center gap-2">
                         <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center text-light fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
@@ -227,7 +227,7 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
                       </span>
                     </td>
                   </tr>
-                  <tr *ngIf="cachedFilteredAppUsers.length === 0">
+                  <tr *ngIf="cachedFilteredAppUsers().length === 0">
                     <td colspan="5" class="text-center py-5 text-secondary small">
                       No se encontraron atletas registrados.
                     </td>
@@ -297,15 +297,16 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
 export class AdminManagementComponent implements OnInit {
   public auth = inject(AuthService);
   private userMgmt = inject(UserManagementService);
+  private cdr = inject(ChangeDetectorRef);
 
-  loadingAdmins = false;
-  activeTab: 'admins' | 'users' = 'admins';
-  admins: AdminUserRecord[] = [];
-  appUsers: AppUser[] = [];
-  cachedFilteredAppUsers: AppUser[] = [];
-  loadingUsers = false;
+  loadingAdmins = signal<boolean>(true);
+  activeTab = signal<'admins' | 'users'>('admins');
+  admins = signal<AdminUserRecord[]>([]);
+  appUsers = signal<AppUser[]>([]);
+  cachedFilteredAppUsers = signal<AppUser[]>([]);
+  loadingUsers = signal<boolean>(true);
   userSearchQuery = '';
-  feedbackMsg = '';
+  feedbackMsg = signal<string>('');
 
   async ngOnInit(): Promise<void> {
     await Promise.race([
@@ -331,7 +332,7 @@ export class AdminManagementComponent implements OnInit {
   }
 
   async loadAdmins(): Promise<void> {
-    this.loadingAdmins = true;
+    this.loadingAdmins.set(true);
     try {
       await Promise.race([
         this.auth.authReadyPromise,
@@ -339,45 +340,51 @@ export class AdminManagementComponent implements OnInit {
       ]);
       const all = await this.userMgmt.listAdmins();
       const myUid = this.auth.currentUser()?.uid;
-      this.admins = all.filter(a => a.uid !== myUid);
+      this.admins.set(all.filter(a => a.uid !== myUid));
     } catch (err: any) {
       console.warn('Error cargando admins:', err);
-      this.admins = [];
+      this.admins.set([]);
     } finally {
-      this.loadingAdmins = false;
+      this.loadingAdmins.set(false);
+      this.cdr.markForCheck();
     }
   }
 
   async loadAppUsers(): Promise<void> {
-    this.loadingUsers = true;
+    this.loadingUsers.set(true);
     try {
-      this.appUsers = await this.userMgmt.listRegisteredUsers();
+      const users = await this.userMgmt.listRegisteredUsers();
+      this.appUsers.set(users);
       this.onUserSearchChange();
     } catch (err: any) {
-      this.feedbackMsg = err.message || 'Error cargando atletas de la app.';
-      this.appUsers = [];
-      this.cachedFilteredAppUsers = [];
+      this.feedbackMsg.set(err.message || 'Error cargando atletas de la app.');
+      this.appUsers.set([]);
+      this.cachedFilteredAppUsers.set([]);
     } finally {
-      this.loadingUsers = false;
+      this.loadingUsers.set(false);
+      this.cdr.markForCheck();
     }
   }
 
   onUserSearchChange(): void {
     const q = this.userSearchQuery.toLowerCase().trim();
+    const all = this.appUsers();
     if (!q) {
-      this.cachedFilteredAppUsers = this.appUsers;
+      this.cachedFilteredAppUsers.set(all);
+      this.cdr.markForCheck();
       return;
     }
-    this.cachedFilteredAppUsers = this.appUsers.filter(u => 
+    this.cachedFilteredAppUsers.set(all.filter(u => 
       (u.displayName && u.displayName.toLowerCase().includes(q)) ||
       (u.email && u.email.toLowerCase().includes(q)) ||
       (u.username && u.username.toLowerCase().includes(q))
-    );
+    ));
+    this.cdr.markForCheck();
   }
 
   isUserAlreadyAdmin(uid: string): boolean {
     if (uid === this.auth.currentUser()?.uid) return true;
-    return this.admins.some(a => a.uid === uid);
+    return this.admins().some(a => a.uid === uid);
   }
 
   async promoteUser(u: AppUser): Promise<void> {
@@ -390,11 +397,13 @@ export class AdminManagementComponent implements OnInit {
 
     try {
       await this.userMgmt.promoteToAdmin(u, currentSuper.uid);
-      this.feedbackMsg = `¡"${u.displayName || u.username}" ahora es Administrador!`;
+      this.feedbackMsg.set(`¡"${u.displayName || u.username}" ahora es Administrador!`);
       await this.loadAdmins();
-      this.activeTab = 'admins';
+      this.activeTab.set('admins');
     } catch (err: any) {
       alert(err.message || 'Error otorgando rol.');
+    } finally {
+      this.cdr.markForCheck();
     }
   }
 
@@ -404,9 +413,12 @@ export class AdminManagementComponent implements OnInit {
       await this.userMgmt.setAdminActiveStatus(adm.uid, newStatus);
       adm.active = newStatus;
       adm.requestStatus = newStatus ? 'approved' : 'rejected';
-      this.feedbackMsg = `Estado de "${adm.name}" actualizado a ${adm.active ? 'Activo (Aprobado)' : 'Suspendido'}.`;
+      this.feedbackMsg.set(`Estado de "${adm.name}" actualizado a ${adm.active ? 'Activo (Aprobado)' : 'Suspendido'}.`);
+      this.admins.update(list => [...list]);
     } catch (err: any) {
       alert(err.message || 'Error al cambiar estado.');
+    } finally {
+      this.cdr.markForCheck();
     }
   }
 
@@ -416,10 +428,12 @@ export class AdminManagementComponent implements OnInit {
     }
     try {
       await this.userMgmt.revokeAdmin(adm.uid);
-      this.admins = this.admins.filter(a => a.uid !== adm.uid);
-      this.feedbackMsg = `Permisos de administrador revocados a "${adm.name}".`;
+      this.admins.update(list => list.filter(a => a.uid !== adm.uid));
+      this.feedbackMsg.set(`Permisos de administrador revocados a "${adm.name}".`);
     } catch (err: any) {
       alert(err.message || 'Error revocando permisos.');
+    } finally {
+      this.cdr.markForCheck();
     }
   }
 }

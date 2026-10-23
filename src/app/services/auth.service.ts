@@ -559,14 +559,15 @@ export class AuthService {
     // Si el usuario tiene proveedor de contraseña, re-autenticar con la contraseña actual
     if (hasPassword && currentPassword) {
       try {
-        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+        const credential = EmailAuthProvider.credential(user.email, currentPassword.trim());
         await reauthenticateWithCredential(user, credential);
       } catch (err: any) {
-        const code = (err.code || err.message || '').toLowerCase();
-        if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('invalid_password') || code.includes('bad request') || code.includes('400')) {
-          throw new Error('La contraseña actual ingresada es incorrecta. Si no la recuerdas, pulsa "¿Olvidaste tu contraseña actual?" abajo para enviarte un enlace a tu correo.');
+        console.warn('Fallo en re-autenticación con contraseña actual:', err);
+        const code = (err?.code || err?.message || String(err)).toLowerCase();
+        if (code.includes('too-many-requests')) {
+          throw new Error('Demasiados intentos fallidos. Por seguridad, espera unos momentos antes de volver a intentar.');
         }
-        throw err;
+        throw new Error('La contraseña actual ingresada es incorrecta. Si no la recuerdas, pulsa "¿Olvidaste tu contraseña actual?" abajo para enviarte un enlace de restablecimiento.');
       }
     }
 
