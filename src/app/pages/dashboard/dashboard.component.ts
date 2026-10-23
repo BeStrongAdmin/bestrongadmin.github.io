@@ -21,7 +21,10 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
             <h1 class="h4 fw-bold mb-1 text-light tracking-tight">Panel de Control</h1>
             <p class="text-secondary small mb-0">Bienvenido, {{ auth.currentUser()?.displayName }}. Vista del sistema y analíticas.</p>
           </div>
-          <div class="d-flex gap-2">
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 px-3 rounded-3" (click)="auth.openChangePasswordModal()" title="Cambiar tu contraseña de acceso">
+              <i class="bi bi-key text-warning"></i> Contraseña
+            </button>
             <a *ngIf="auth.currentUser()?.isAdmin" routerLink="/generator" class="btn btn-light btn-sm fw-bold d-flex align-items-center gap-2 px-3 rounded-3">
               <i class="bi bi-plus-lg"></i> Nueva Rutina
             </a>
