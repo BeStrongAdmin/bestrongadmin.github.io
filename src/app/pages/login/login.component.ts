@@ -529,6 +529,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   resetLoading = false;
   resetError = '';
   timerSeconds = 120;
+  oobCode = '';
   private timerInterval: any = null;
 
   private auth = inject(AuthService);
@@ -539,6 +540,12 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.route.queryParams.subscribe(params => {
       if (params['mode'] === 'register' || params['tab'] === 'register') {
         this.mode = 'register';
+      }
+      const codeParam = params['oobCode'] || params['code'];
+      if (codeParam) {
+        this.oobCode = codeParam;
+        this.resetStep = 3; // Abrir directamente en el paso de nueva contraseña
+        this.showResetModal = true;
       }
     });
 
@@ -745,7 +752,11 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.resetError = '';
 
     try {
-      await this.auth.completePasswordReset(this.resetEmail, this.resetCode, this.newPassword);
+      if (this.oobCode) {
+        await this.auth.confirmFirebasePasswordReset(this.oobCode, this.newPassword);
+      } else {
+        await this.auth.completePasswordReset(this.resetEmail, this.resetCode, this.newPassword);
+      }
       this.resetStep = 4;
     } catch (err: any) {
       this.resetError = err.message || 'Error al guardar la nueva contraseña.';

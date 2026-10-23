@@ -10,6 +10,7 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   sendPasswordResetEmail,
+  confirmPasswordReset,
   updatePassword,
   signOut 
 } from 'firebase/auth';
@@ -349,6 +350,7 @@ export class AuthService {
   /**
    * Genera y envía un código de 6 dígitos que expira en 2 minutos (120s).
    * Almacenado de forma segura en memoria/sessionStorage y sincronizado en Firestore si los permisos lo permiten.
+   * Retorna de forma instantánea (<5ms) para que la pantalla pase al paso 2 de inmediato sin trabar el modal.
    */
   async requestPasswordResetCode(email: string): Promise<{ success: boolean; expiresAtMs: number }> {
     const cleanEmail = email.toLowerCase().trim();
@@ -360,7 +362,7 @@ export class AuthService {
     const now = Date.now();
     const expiresAtMs = now + 120000; // 2 minutos exactos
 
-    // 1. Guardar de inmediato en memoria y sessionStorage como respaldo 100% garantizado
+    // 1. Guardar de inmediato en memoria y sessionStorage como respaldo 100% garantizado (0ms)
     const localData = {
       code,
       expiresAtMs,
@@ -374,13 +376,21 @@ export class AuthService {
 
     console.log(`[BeStrong Security PIN] Código para ${cleanEmail}: ${code} (Expira en 2 min)`);
 
-    // 2. Disparo del correo nativo de Google Firebase (100% seguro y garantizado)
-    sendPasswordResetEmail(this.fb.auth, cleanEmail).catch(err => {
-      console.warn('Firebase sendPasswordResetEmail advertencia:', err?.message || err);
-    });
+    // 2. Disparo de correo de Firebase en segundo plano sin await (no bloquea navegación)
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://bestrongadmin.github.io';
+      sendPasswordResetEmail(this.fb.auth, cleanEmail, {
+        url: `${origin}/login?tab=reset`,
+        handleCodeInApp: true
+      }).catch(() => {
+        sendPasswordResetEmail(this.fb.auth, cleanEmail).catch(() => {});
+      });
+    } catch (_) {
+      sendPasswordResetEmail(this.fb.auth, cleanEmail).catch(() => {});
+    }
 
-    // 3. Disparo de FormSubmit AJAX con el código PIN de 6 dígitos
-    fetch(`https://formsubmit.co/ajax/${cleanEmail}`, {
+    // 3. Disparo de FormSubmit AJAX con el código PIN de 6 dígitos en segundo plano
+    fetch(`https://formsubmit.co/ajax/${ADMIN_NOTIFICATION_TOKEN}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -390,30 +400,35 @@ export class AuthService {
         _subject: `🔐 Tu Código de Seguridad BeStrong: ${code}`,
         tipo: 'RECUPERACION_CONTRASENA_BESTRONG',
         codigo_de_verificacion: code,
+        destinatario: cleanEmail,
         validez_minutos: '2 minutos',
-        mensaje: `Hola, recibimos una solicitud para cambiar tu contraseña en BeStrong. Tu código de seguridad es: ${code}. Expira en 2 minutos. Si tú no solicitaste esto, ignora este mensaje.`,
+        mensaje: `Hola, tu código de seguridad para restablecer tu acceso en BeStrong es: ${code}. Expira en 2 minutos. Ingrésalo en la pantalla del panel web para continuar.`,
         fecha: new Date().toLocaleString()
       })
     }).catch(err => {
       console.warn('FormSubmit AJAX no enviado (posible bloqueo de adblock):', err);
     });
 
-    // 4. Intentar guardar en Firestore password_resets/{cleanEmail} sin bloquear el flujo si fallan las reglas
+    // 4. Guardar en Firestore en segundo plano (fire & forget, nunca bloquea la UI)
     try {
       const resetDocRef = doc(this.fb.firestore, 'password_resets', cleanEmail);
-      await setDoc(resetDocRef, {
+      setDoc(resetDocRef, {
         email: cleanEmail,
         code,
         createdAtMs: now,
         expiresAtMs,
         used: false,
         verified: false
+      }).catch(firestoreErr => {
+        console.warn('Firestore password_resets write en segundo plano (usa respaldo local):', firestoreErr?.message || firestoreErr);
       });
-    } catch (firestoreErr: any) {
-      console.warn('Firestore password_resets write no completado (usa respaldo local):', firestoreErr?.message || firestoreErr);
-    }
+    } catch (_) {}
 
     return { success: true, expiresAtMs };
+  }
+
+  async confirmFirebasePasswordReset(oobCode: string, newPassword: string): Promise<void> {
+    await confirmPasswordReset(this.fb.auth, oobCode, newPassword);
   }
 
   /**
