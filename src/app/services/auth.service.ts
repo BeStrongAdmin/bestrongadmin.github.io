@@ -7,9 +7,11 @@ import {
   updateProfile,
   signInWithPopup,
   GoogleAuthProvider,
+  sendPasswordResetEmail,
+  updatePassword,
   signOut 
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { FirebaseService } from './firebase.service';
 import { environment } from '../../environments/environment';
 
@@ -21,6 +23,7 @@ export interface AdminProfile {
   isAdmin: boolean;
   requestStatus?: 'none' | 'pending' | 'approved' | 'rejected';
   phone?: string;
+  roles?: Array<'superadmin' | 'coach' | 'athlete'>;
 }
 
 const FIRESTORE_TIMEOUT_MS = 3500;
@@ -262,26 +265,31 @@ export class AuthService {
         email: cur.email,
         name: cur.displayName,
         phone: phone || cur.phone || '',
-        active: false,
-        requestStatus: 'pending',
+        active: true, // Auto-activación instantánea como coach
+        role: 'coach',
+        roles: ['athlete', 'coach'],
+        requestStatus: 'approved',
+        activatedAtMs: Date.now(),
         requestedAtMs: Date.now()
       }, { merge: true });
 
-      // Notificar por correo
-      await this.notifySuperadminNewCoach(cur.displayName || '', cur.email || '', phone || cur.phone);
+      // Notificar por correo al Superadmin (behealthlyapp@gmail.com)
+      await this.notifySuperadminNewCoach(cur.displayName || '', cur.email || '', phone || cur.phone, true);
 
       this.currentUser.set({
         ...cur,
-        requestStatus: 'pending',
+        isAdmin: true,
+        requestStatus: 'approved',
+        roles: ['athlete', 'coach'],
         phone: phone || cur.phone
       });
     } catch (err: any) {
-      console.error('Error al solicitar permiso de admin:', err);
-      throw new Error(err.message || 'No se pudo enviar la solicitud.');
+      console.error('Error al activar permisos de coach:', err);
+      throw new Error(err.message || 'No se pudo activar el acceso.');
     }
   }
 
-  private async notifySuperadminNewCoach(name: string, email: string, phone?: string): Promise<void> {
+  private async notifySuperadminNewCoach(name: string, email: string, phone?: string, instantActivated = false): Promise<void> {
     try {
       // 1. Guardar en colección de solicitudes en Firestore
       const user = this.fb.auth.currentUser;
@@ -294,7 +302,7 @@ export class AuthService {
           phone: phone || '',
           requestedAt: new Date().toISOString(),
           requestedAtMs: Date.now(),
-          status: 'pending'
+          status: instantActivated ? 'approved' : 'pending'
         }, { merge: true }).catch(() => {});
       }
 
@@ -306,12 +314,12 @@ export class AuthService {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          _subject: `🏋️‍♂️ Nueva Solicitud de Coach: ${name} (${email})`,
-          tipo: 'SOLICITUD_ACCESO_COACH',
+          _subject: instantActivated ? `🏋️‍♂️ ¡Nuevo Coach Activado!: ${name} (${email})` : `🏋️‍♂️ Nueva Solicitud de Coach: ${name} (${email})`,
+          tipo: instantActivated ? 'NUEVO_COACH_ACTIVADO' : 'SOLICITUD_ACCESO_COACH',
           nombre_coach: name,
           correo: email,
           telefono: phone || 'No especificado',
-          mensaje: `Un nuevo entrenador (${name}) se ha registrado en el Panel Web BeStrong y solicita activación de permisos de administración.`,
+          mensaje: `El usuario ${name} (${email}) ha activado su cuenta como Coach en el Panel Web BeStrong y ya puede generar y asignar rutinas.`,
           fecha: new Date().toLocaleString(),
           panel_url: 'https://bestrongadmin.github.io/admin-management'
         })
@@ -320,6 +328,109 @@ export class AuthService {
       });
     } catch (e) {
       console.warn('Error en notifySuperadminNewCoach:', e);
+    }
+  }
+
+  /**
+   * Genera y envía un código de 6 dígitos que expira en 2 minutos (120s)
+   * Guardado en Firestore en password_resets/{email}
+   */
+  async requestPasswordResetCode(email: string): Promise<{ success: boolean; expiresAtMs: number }> {
+    const cleanEmail = email.toLowerCase().trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      throw new Error('Por favor ingresa un correo electrónico válido.');
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const now = Date.now();
+    const expiresAtMs = now + 120000; // 2 minutos exactos
+
+    try {
+      // 1. Guardar código en Firestore
+      const resetDocRef = doc(this.fb.firestore, 'password_resets', cleanEmail);
+      await setDoc(resetDocRef, {
+        email: cleanEmail,
+        code,
+        createdAtMs: now,
+        expiresAtMs,
+        used: false,
+        verified: false
+      });
+
+      // 2. Enviar email con el código de 6 dígitos vía FormSubmit AJAX
+      await fetch(`https://formsubmit.co/ajax/${cleanEmail}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          _subject: `🔐 Tu Código de Seguridad BeStrong: ${code}`,
+          tipo: 'RECUPERACION_CONTRASENA_BESTRONG',
+          codigo_de_verificacion: code,
+          validez_minutos: '2 minutos',
+          mensaje: `Hola, recibimos una solicitud para cambiar tu contraseña en BeStrong. Tu código de seguridad es: ${code}. Expira en 2 minutos. Si tú no solicitaste esto, ignora este mensaje.`,
+          fecha: new Date().toLocaleString()
+        })
+      }).catch(err => {
+        console.warn('FormSubmit no enviado para código de recuperación:', err);
+      });
+
+      // 3. Disparo en paralelo de recuperación nativa de Firebase Auth
+      sendPasswordResetEmail(this.fb.auth, cleanEmail).catch(() => {});
+
+      return { success: true, expiresAtMs };
+    } catch (err: any) {
+      console.error('Error al generar código de restablecimiento:', err);
+      throw new Error(err.message || 'Error al enviar código de verificación.');
+    }
+  }
+
+  /**
+   * Valida el código de 6 dígitos ingresado por el usuario
+   */
+  async verifyPasswordResetCode(email: string, codeEntered: string): Promise<boolean> {
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanCode = codeEntered.trim();
+    const resetDocRef = doc(this.fb.firestore, 'password_resets', cleanEmail);
+    const snap = await getDoc(resetDocRef);
+
+    if (!snap.exists()) {
+      throw new Error('No hay ninguna solicitud de recuperación activa para este correo. Solicita un nuevo código.');
+    }
+
+    const data = snap.data();
+    const now = Date.now();
+
+    if (now > data['expiresAtMs']) {
+      throw new Error('El código ha expirado (los 2 minutos se han agotado). Por favor solicita un nuevo código.');
+    }
+
+    if (data['used'] === true) {
+      throw new Error('Este código ya fue utilizado. Por favor solicita uno nuevo.');
+    }
+
+    if (data['code'] !== cleanCode) {
+      throw new Error('El código ingresado es incorrecto. Revisa tu correo e intenta de nuevo.');
+    }
+
+    await updateDoc(resetDocRef, { verified: true });
+    return true;
+  }
+
+  /**
+   * Completa el proceso de cambio de contraseña
+   */
+  async completePasswordReset(email: string, codeEntered: string, newPassword: string): Promise<void> {
+    const cleanEmail = email.toLowerCase().trim();
+    await this.verifyPasswordResetCode(cleanEmail, codeEntered);
+
+    const resetDocRef = doc(this.fb.firestore, 'password_resets', cleanEmail);
+    await updateDoc(resetDocRef, { used: true });
+
+    // Si el usuario está autenticado, actualizamos directamente su contraseña en Firebase Auth:
+    if (this.fb.auth.currentUser && this.fb.auth.currentUser.email?.toLowerCase() === cleanEmail) {
+      await updatePassword(this.fb.auth.currentUser, newPassword);
     }
   }
 

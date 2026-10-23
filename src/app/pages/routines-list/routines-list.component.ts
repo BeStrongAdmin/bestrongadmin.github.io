@@ -134,28 +134,98 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
             </div>
             <button type="button" class="btn-close btn-close-white" (click)="selectedRoutine = null"></button>
           </div>
+
+          <!-- Modal Tabs -->
+          <div class="px-4 pt-3 border-bottom border-dark">
+            <ul class="nav nav-pills gap-2 mb-2">
+              <li class="nav-item">
+                <button 
+                  type="button" 
+                  class="btn btn-sm px-3 py-1 rounded-3"
+                  [ngClass]="modalTab === 'exercises' ? 'btn-light text-dark fw-bold' : 'btn-outline-secondary text-secondary'"
+                  (click)="modalTab = 'exercises'"
+                >
+                  <i class="bi bi-list-check me-1"></i> Ejercicios Biomecánicos
+                </button>
+              </li>
+              <li class="nav-item">
+                <button 
+                  type="button" 
+                  class="btn btn-sm px-3 py-1 rounded-3"
+                  [ngClass]="modalTab === 'trainees' ? 'btn-success text-dark fw-bold' : 'btn-outline-secondary text-secondary'"
+                  (click)="modalTab = 'trainees'"
+                >
+                  <i class="bi bi-people-fill me-1"></i> Atletas que la Usan ({{ selectedRoutine.trainees?.length || selectedRoutine.timesRedeemed || 0 }})
+                </button>
+              </li>
+            </ul>
+          </div>
+
           <div class="modal-body p-4">
-            <div *ngFor="let day of selectedRoutine.routine?.days" class="card border-0 rounded-3 mb-3 p-3" style="background-color: #12141c;">
-              <h6 class="fw-bold text-success mb-2 small text-uppercase">{{ day.name }}</h6>
-              <div class="table-responsive">
-                <table class="table table-sm table-borderless align-middle mb-0">
-                  <thead class="small text-secondary border-bottom border-dark">
+            <!-- TAB 1: Ejercicios -->
+            <div *ngIf="modalTab === 'exercises'">
+              <div *ngFor="let day of selectedRoutine.routine?.days" class="card border-0 rounded-3 mb-3 p-3" style="background-color: #12141c;">
+                <h6 class="fw-bold text-success mb-2 small text-uppercase">{{ day.name }}</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm table-borderless align-middle mb-0">
+                    <thead class="small text-secondary border-bottom border-dark">
+                      <tr>
+                        <th>Ejercicio</th>
+                        <th>Patrón</th>
+                        <th class="text-center">Series</th>
+                        <th class="text-center">Reps</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let ex of day.exercises">
+                        <td class="text-light fw-medium small">{{ ex.exerciseName || ex.name_es || ex.name }}</td>
+                        <td><span class="badge badge-subtle">{{ ex.movementPattern || ex.movement_pattern || 'General' }}</span></td>
+                        <td class="text-center fw-bold small text-light">{{ ex.sets }}</td>
+                        <td class="text-center small text-secondary">{{ ex.reps || ex.repsRange }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: Atletas que la usan -->
+            <div *ngIf="modalTab === 'trainees'">
+              <div *ngIf="selectedRoutine.trainees && selectedRoutine.trainees.length > 0" class="table-responsive">
+                <table class="table table-hover align-middle mb-0 custom-table">
+                  <thead>
                     <tr>
-                      <th>Ejercicio</th>
-                      <th>Patrón</th>
-                      <th class="text-center">Series</th>
-                      <th class="text-center">Reps</th>
+                      <th class="ps-3">Atleta</th>
+                      <th>Correo</th>
+                      <th class="text-end pe-3">Fecha de Canje</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let ex of day.exercises">
-                      <td class="text-light fw-medium small">{{ ex.exerciseName || ex.name_es || ex.name }}</td>
-                      <td><span class="badge badge-subtle">{{ ex.movementPattern || ex.movement_pattern || 'General' }}</span></td>
-                      <td class="text-center fw-bold small text-light">{{ ex.sets }}</td>
-                      <td class="text-center small text-secondary">{{ ex.reps || ex.repsRange }}</td>
+                    <tr *ngFor="let t of selectedRoutine.trainees">
+                      <td class="ps-3">
+                        <div class="d-flex align-items-center gap-2">
+                          <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center text-light fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                            {{ (t.name || 'A').charAt(0).toUpperCase() }}
+                          </div>
+                          <div>
+                            <div class="fw-semibold text-light small">{{ t.name }}</div>
+                            <div class="small text-secondary font-monospace" style="font-size: 0.7rem;">UID: {{ t.uid }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="text-secondary small">{{ t.email || 'Sin correo público' }}</td>
+                      <td class="text-end pe-3 small text-secondary">{{ t.redeemedAtMs | date:'medium' }}</td>
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              <div *ngIf="!selectedRoutine.trainees || selectedRoutine.trainees.length === 0" class="p-4 text-center rounded-3" style="background: rgba(255,255,255,0.02);">
+                <i class="bi bi-person-check fs-1 text-secondary opacity-50 mb-2 d-block"></i>
+                <h6 class="fw-bold text-light mb-1">{{ selectedRoutine.timesRedeemed }} Atleta(s) han canjeado esta rutina</h6>
+                <p class="text-secondary small mb-0" style="max-width: 480px; margin: 0 auto; line-height: 1.5;">
+                  Los canjes están contabilizados. Conforme los atletas canjeen el código <strong class="text-success font-monospace">{{ selectedRoutine.code }}</strong> en la app móvil, verás aquí su nombre, correo y fecha exacta de activación.
+                </p>
               </div>
             </div>
           </div>
@@ -209,6 +279,7 @@ export class RoutinesListComponent implements OnInit {
   searchQuery = '';
   feedbackMsg = '';
   selectedRoutine: AssignedRoutineRecord | null = null;
+  modalTab: 'exercises' | 'trainees' = 'exercises';
 
   async ngOnInit(): Promise<void> {
     await this.loadRoutines();
@@ -260,6 +331,7 @@ export class RoutinesListComponent implements OnInit {
 
   viewDetail(routine: AssignedRoutineRecord): void {
     this.selectedRoutine = routine;
+    this.modalTab = 'exercises';
   }
 
   async deleteRoutine(code: string): Promise<void> {

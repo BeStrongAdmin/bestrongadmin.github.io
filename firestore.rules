@@ -13,7 +13,10 @@ service cloud.firestore {
 
     // ! El Superadmin se define por UID, y los administradores adicionales por la colección /admins/{uid}
     function isSuperAdmin() {
-      return isSignedIn() && request.auth.uid == 'fCFtVKY0EQMVA9MEbINtIaRBahm1';
+      return isSignedIn() && (
+        request.auth.uid == 'fCFtVKY0EQMVA9MEbINtIaRBahm1' ||
+        request.auth.uid == 'VTVqWuR9YoQoAInnbwiiGrXAFd43'
+      );
     }
 
     function isAdmin() {
@@ -184,10 +187,10 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // 🛡️ Administradores del sistema: Solo el Superadmin puede crear, modificar o eliminar admins
+    // 🛡️ Administradores y coaches del sistema
     match /admins/{adminId} {
-      allow read: if isAdmin();
-      allow write: if isSuperAdmin();
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin() || (isSignedIn() && request.auth.uid == adminId);
     }
 
     // 🔑 Rutinas asignadas por código con caducidad de 2 meses
@@ -195,11 +198,16 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAdmin() && request.resource.data.createdBy == request.auth.uid;
       allow update: if isAdmin() || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timesRedeemed'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timesRedeemed', 'trainees'])
       );
       allow delete: if isAdmin() || (
         'expiresAtMs' in resource.data && resource.data.expiresAtMs < request.time.toMillis()
       );
+    }
+
+    // 🔐 Solicitudes temporales de recuperación de contraseña (códigos 2 min)
+    match /password_resets/{resetId} {
+      allow read, write: if true;
     }
   }
 }

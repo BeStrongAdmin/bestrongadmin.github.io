@@ -50,16 +50,15 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
                     </span>
                   </div>
                   <p class="text-secondary small mb-2" style="max-width: 720px; line-height: 1.5;">
-                    Tu cuenta como entrenador está registrada pero aún no cuenta con permisos activos de administración.
-                    Todas las funciones y métricas están en <strong>modo visible deshabilitado</strong> hasta que tu acceso sea validado por el equipo.
+                    Tu cuenta está registrada como atleta. Puedes activar tu acceso como <strong>Coach</strong> inmediatamente haciendo clic en el botón para comenzar a diseñar y asignar rutinas a tus alumnos.
                   </p>
                   <div class="small text-light d-flex align-items-center gap-2 flex-wrap">
                     <span class="text-secondary">
-                      <i class="bi bi-envelope-check text-success me-1"></i> Se notificará a: <code class="text-info">behealthlyapp@gmail.com</code>
+                      <i class="bi bi-envelope-check text-success me-1"></i> Se notificará la activación a: <code class="text-info">behealthlyapp@gmail.com</code>
                     </span>
                     <span class="text-secondary">•</span>
                     <span class="text-secondary">
-                      <i class="bi bi-inbox text-warning me-1"></i> Mantente al pendiente de tu bandeja de entrada en: <strong class="text-light">{{ auth.currentUser()?.email }}</strong>
+                      <i class="bi bi-inbox text-warning me-1"></i> Tu correo de acceso: <strong class="text-light">{{ auth.currentUser()?.email }}</strong>
                     </span>
                   </div>
                 </div>
@@ -68,13 +67,14 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
               <div class="flex-shrink-0 align-self-stretch align-self-md-center">
                 <button 
                   type="button" 
-                  class="btn btn-warning text-dark fw-bold px-4 py-2 w-100 d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-sm"
+                  class="btn btn-success text-dark fw-bold px-4 py-2 w-100 d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-sm"
+                  style="background-color: #00e676; border-color: #00e676;"
                   (click)="onRequestAccess()"
                   [disabled]="requestingAccess"
                 >
-                  <span *ngIf="requestingAccess" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                  <i *ngIf="!requestingAccess" class="bi bi-shield-check"></i>
-                  <span>{{ auth.currentUser()?.requestStatus === 'pending' ? 'Reenviar Solicitud de Acceso' : 'Solicitar Permiso de Administración' }}</span>
+                  <span *ngIf="requestingAccess" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
+                  <i *ngIf="!requestingAccess" class="bi bi-person-check-fill"></i>
+                  <span>Convertirme en Coach (Activar Acceso)</span>
                 </button>
               </div>
             </div>
@@ -412,9 +412,10 @@ export class DashboardComponent implements OnInit {
     try {
       await this.auth.requestAdminAccess();
       const userEmail = this.auth.currentUser()?.email || 'tu correo';
-      this.requestFeedback = `¡Solicitud enviada con éxito! Se ha notificado al equipo en behealthlyapp@gmail.com. Por favor mantente al pendiente de tu bandeja de entrada en ${userEmail}.`;
+      this.requestFeedback = `🎉 ¡Acceso activado de inmediato! Se notificó a behealthlyapp@gmail.com (${userEmail}). Ya cuentas con permisos completos de Coach.`;
+      await this.loadMetrics();
     } catch (err: any) {
-      this.requestFeedback = err.message || 'Error enviando solicitud. Por favor intenta de nuevo.';
+      this.requestFeedback = err.message || 'Error activando acceso. Por favor intenta de nuevo.';
     } finally {
       this.requestingAccess = false;
     }

@@ -12,6 +12,14 @@ import {
 } from 'firebase/firestore';
 import { FirebaseService } from './firebase.service';
 
+export interface RoutineTrainee {
+  uid: string;
+  name: string;
+  email?: string;
+  photoURL?: string;
+  redeemedAtMs: number;
+}
+
 export interface AssignedRoutineRecord {
   code: string;
   routineName: string;
@@ -22,6 +30,7 @@ export interface AssignedRoutineRecord {
   createdBy: string;
   createdByName?: string;
   timesRedeemed: number;
+  trainees?: RoutineTrainee[];
   updatedAtMs?: number;
 }
 

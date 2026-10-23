@@ -57,7 +57,12 @@ import { UserManagementService, AdminUserRecord, AppUser } from '../../services/
         <!-- TAB 1: Current Admins -->
         <div *ngIf="activeTab === 'admins'">
           <div class="card border-0 rounded-4 panel-card overflow-hidden">
-            <div class="table-responsive">
+            <div *ngIf="loadingAdmins" class="text-center py-5">
+              <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+              <div class="small text-secondary mt-2">Cargando entrenadores del sistema...</div>
+            </div>
+
+            <div *ngIf="!loadingAdmins" class="table-responsive">
               <table class="table table-hover align-middle mb-0 custom-table">
                 <thead>
                   <tr>
@@ -293,6 +298,7 @@ export class AdminManagementComponent implements OnInit {
   public auth = inject(AuthService);
   private userMgmt = inject(UserManagementService);
 
+  loadingAdmins = false;
   activeTab: 'admins' | 'users' = 'admins';
   admins: AdminUserRecord[] = [];
   appUsers: AppUser[] = [];
@@ -302,8 +308,14 @@ export class AdminManagementComponent implements OnInit {
   feedbackMsg = '';
 
   async ngOnInit(): Promise<void> {
-    await this.loadAdmins();
-    await this.loadAppUsers();
+    await Promise.race([
+      this.auth.authReadyPromise,
+      new Promise(resolve => setTimeout(resolve, 2500))
+    ]);
+    await Promise.all([
+      this.loadAdmins(),
+      this.loadAppUsers()
+    ]);
   }
 
   trackByAdminUid(index: number, item: AdminUserRecord): string {
@@ -319,13 +331,20 @@ export class AdminManagementComponent implements OnInit {
   }
 
   async loadAdmins(): Promise<void> {
+    this.loadingAdmins = true;
     try {
+      await Promise.race([
+        this.auth.authReadyPromise,
+        new Promise(resolve => setTimeout(resolve, 2500))
+      ]);
       const all = await this.userMgmt.listAdmins();
       const myUid = this.auth.currentUser()?.uid;
       this.admins = all.filter(a => a.uid !== myUid);
     } catch (err: any) {
       console.warn('Error cargando admins:', err);
       this.admins = [];
+    } finally {
+      this.loadingAdmins = false;
     }
   }
 

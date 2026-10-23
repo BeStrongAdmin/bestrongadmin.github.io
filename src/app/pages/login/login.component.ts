@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
@@ -53,8 +53,28 @@ import { AuthService } from '../../services/auth.service';
           </button>
         </div>
 
+        <!-- Existing Mobile Account Notice -->
+        <div *ngIf="existingAccountDetected" class="p-3 mb-3 rounded-3 border border-warning border-opacity-50" style="background: rgba(255, 193, 7, 0.08);">
+          <div class="d-flex align-items-start gap-2 text-warning small mb-2">
+            <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 mt-1"></i>
+            <div>
+              <div class="fw-bold mb-1">¡Esta cuenta ya existe en BeStrong!</div>
+              <div class="text-secondary" style="font-size: 0.82rem; line-height: 1.4;">
+                Es muy probable que te hayas registrado previamente en la app móvil. Por favor inicia sesión directamente con tu cuenta.
+              </div>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            class="btn btn-warning text-dark btn-sm w-100 fw-bold d-flex align-items-center justify-content-center gap-1 mt-1 shadow-sm"
+            (click)="switchToLoginWithCurrentEmail()"
+          >
+            <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión con este correo
+          </button>
+        </div>
+
         <!-- Error alert -->
-        <div *ngIf="errorMessage" class="alert alert-danger d-flex align-items-center gap-2 py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger" role="alert">
+        <div *ngIf="errorMessage && !existingAccountDetected" class="alert alert-danger d-flex align-items-center gap-2 py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger" role="alert">
           <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
           <div>{{ errorMessage }}</div>
         </div>
@@ -105,7 +125,7 @@ import { AuthService } from '../../services/auth.service';
             </div>
           </div>
 
-          <div class="mb-4">
+          <div class="mb-2">
             <label class="form-label text-secondary small fw-medium">Contraseña</label>
             <div class="input-group">
               <span class="input-group-text bg-dark border-secondary text-secondary">
@@ -121,6 +141,18 @@ import { AuthService } from '../../services/auth.service';
                 [disabled]="loading || loadingGoogle"
               />
             </div>
+          </div>
+
+          <!-- Forgot password link -->
+          <div class="d-flex justify-content-end mb-4">
+            <button 
+              type="button" 
+              class="btn btn-link p-0 text-success text-decoration-none small hover-light" 
+              (click)="openResetModal()"
+              style="font-size: 0.82rem;"
+            >
+              <i class="bi bi-key me-1"></i> ¿Olvidaste tu contraseña?
+            </button>
           </div>
 
           <button 
@@ -249,6 +281,210 @@ import { AuthService } from '../../services/auth.service';
 
       </div>
     </div>
+
+    <!-- PASSWORD RECOVERY MODAL -->
+    <div *ngIf="showResetModal" class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3">
+      <div class="card p-4 border border-secondary border-opacity-50 shadow-2xl position-relative text-light" style="max-width: 440px; width: 100%; background-color: #0d0f15; border-radius: 1.25rem;">
+        
+        <!-- Close button -->
+        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" (click)="closeResetModal()" aria-label="Close"></button>
+
+        <!-- STEP 1: Enter email -->
+        <div *ngIf="resetStep === 1">
+          <div class="text-center mb-3">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-dark border border-secondary p-3 mb-2 text-warning">
+              <i class="bi bi-envelope-check fs-3"></i>
+            </div>
+            <h4 class="fw-bold mb-1 text-light">Recuperar Contraseña</h4>
+            <p class="text-secondary small mb-0">
+              Ingresa el correo asociado a tu cuenta BeStrong. Te enviaremos un código de seguridad de 6 dígitos con validez de 2 minutos.
+            </p>
+          </div>
+
+          <div *ngIf="resetError" class="alert alert-danger py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger">
+            {{ resetError }}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-secondary small fw-medium">Correo Electrónico</label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-secondary">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <input 
+                type="email" 
+                class="form-control" 
+                placeholder="tu@correo.com" 
+                [(ngModel)]="resetEmail" 
+                name="resetEmail" 
+                required 
+                [disabled]="resetLoading"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="button" 
+            class="btn btn-success text-dark w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-2"
+            style="border-radius: 12px; background-color: #00e676; border-color: #00e676;"
+            (click)="onSendResetCode()"
+            [disabled]="resetLoading || !resetEmail || !resetEmail.includes('@')"
+          >
+            <span *ngIf="resetLoading" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
+            <span>{{ resetLoading ? 'Enviando código...' : 'Enviar Código (2 Minutos)' }}</span>
+          </button>
+        </div>
+
+        <!-- STEP 2: Enter 6-digit code with 2-minute countdown -->
+        <div *ngIf="resetStep === 2">
+          <div class="text-center mb-3">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-dark border border-secondary p-3 mb-2 text-info">
+              <i class="bi bi-shield-lock-fill fs-3"></i>
+            </div>
+            <h4 class="fw-bold mb-1 text-light">Código de Seguridad</h4>
+            <p class="text-secondary small mb-2">
+              Ingresa el código de 6 dígitos enviado a <strong class="text-light">{{ resetEmail }}</strong>.
+            </p>
+
+            <!-- Countdown Timer Badge -->
+            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2 border" 
+                 [ngClass]="timerSeconds <= 30 ? 'bg-danger bg-opacity-10 border-danger text-danger' : 'bg-success bg-opacity-10 border-success text-success'">
+              <i class="bi bi-stopwatch-fill"></i>
+              <span class="fw-bold" style="font-size: 1rem; letter-spacing: 1px;">{{ formatTimer() }}</span>
+              <span class="small" *ngIf="timerSeconds === 0">(Expirado)</span>
+            </div>
+          </div>
+
+          <div *ngIf="resetError" class="alert alert-danger py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger">
+            {{ resetError }}
+          </div>
+
+          <div class="mb-3 text-center">
+            <label class="form-label text-secondary small fw-medium d-block">Código de 6 Dígitos</label>
+            <input 
+              type="text" 
+              class="form-control text-center fw-bold fs-3 text-light" 
+              style="letter-spacing: 8px; background-color: #12141a; border-color: #2c3240; border-radius: 12px;"
+              placeholder="••••••" 
+              [(ngModel)]="resetCode" 
+              name="resetCode" 
+              maxlength="6"
+              [disabled]="resetLoading || timerSeconds === 0"
+              autocomplete="one-time-code"
+            />
+          </div>
+
+          <button 
+            type="button" 
+            class="btn btn-success text-dark w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-2"
+            style="border-radius: 12px; background-color: #00e676; border-color: #00e676;"
+            (click)="onVerifyCode()"
+            [disabled]="resetLoading || resetCode.trim().length !== 6 || timerSeconds === 0"
+          >
+            <span *ngIf="resetLoading" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
+            <span>{{ resetLoading ? 'Verificando...' : 'Verificar Código' }}</span>
+          </button>
+
+          <div class="text-center mt-2">
+            <button 
+              type="button" 
+              class="btn btn-link text-secondary text-decoration-none small hover-light" 
+              (click)="onResendCode()"
+              [disabled]="resetLoading"
+            >
+              <i class="bi bi-arrow-clockwise me-1"></i> ¿No recibiste el código? Reenviar
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Change password -->
+        <div *ngIf="resetStep === 3">
+          <div class="text-center mb-3">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-dark border border-secondary p-3 mb-2 text-success">
+              <i class="bi bi-check2-circle fs-3"></i>
+            </div>
+            <h4 class="fw-bold mb-1 text-light">Nueva Contraseña</h4>
+            <p class="text-secondary small mb-0">
+              Código verificado exitosamente. Ingresa tu nueva contraseña para BeStrong.
+            </p>
+          </div>
+
+          <div *ngIf="resetError" class="alert alert-danger py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger">
+            {{ resetError }}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-secondary small fw-medium">Nueva Contraseña</label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-secondary">
+                <i class="bi bi-lock"></i>
+              </span>
+              <input 
+                type="password" 
+                class="form-control" 
+                placeholder="Mínimo 6 caracteres" 
+                [(ngModel)]="newPassword" 
+                name="newPassword" 
+                required 
+                minlength="6"
+                [disabled]="resetLoading"
+              />
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label text-secondary small fw-medium">Confirmar Nueva Contraseña</label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-secondary">
+                <i class="bi bi-lock-fill"></i>
+              </span>
+              <input 
+                type="password" 
+                class="form-control" 
+                placeholder="Repite la contraseña" 
+                [(ngModel)]="confirmPassword" 
+                name="confirmPassword" 
+                required 
+                minlength="6"
+                [disabled]="resetLoading"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="button" 
+            class="btn btn-success text-dark w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-2"
+            style="border-radius: 12px; background-color: #00e676; border-color: #00e676;"
+            (click)="onCompletePasswordReset()"
+            [disabled]="resetLoading || !newPassword || newPassword.length < 6 || newPassword !== confirmPassword"
+          >
+            <span *ngIf="resetLoading" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
+            <span>{{ resetLoading ? 'Guardando...' : 'Guardar Nueva Contraseña' }}</span>
+          </button>
+        </div>
+
+        <!-- STEP 4: Success confirmation -->
+        <div *ngIf="resetStep === 4" class="text-center py-2">
+          <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 border border-success p-3 mb-3 text-success">
+            <i class="bi bi-check-lg fs-1"></i>
+          </div>
+          <h4 class="fw-bold mb-2 text-light">¡Contraseña Actualizada!</h4>
+          <p class="text-secondary small mb-4" style="line-height: 1.5;">
+            Tu código de seguridad ha sido validado. También te enviamos el enlace de confirmación seguro a tu correo <strong class="text-light">{{ resetEmail }}</strong> para sincronización total con Firebase.
+          </p>
+
+          <button 
+            type="button" 
+            class="btn btn-light w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
+            style="border-radius: 12px;"
+            (click)="finishResetAndLogin()"
+          >
+            <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión Ahora
+          </button>
+        </div>
+
+      </div>
+    </div>
   `,
   styles: [`
     .login-wrapper {
@@ -260,9 +496,19 @@ import { AuthService } from '../../services/auth.service';
     .transition-all {
       transition: all 0.2s ease;
     }
+    .modal-backdrop-custom {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(3, 4, 6, 0.88);
+      backdrop-filter: blur(8px);
+      z-index: 1050;
+    }
   `]
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, OnDestroy {
   mode: 'login' | 'register' = 'login';
   email = '';
   password = '';
@@ -271,6 +517,19 @@ export class LoginComponent implements OnInit {
   loading = false;
   loadingGoogle = false;
   errorMessage = '';
+  existingAccountDetected = false;
+
+  // Password Reset Modal State
+  showResetModal = false;
+  resetStep: 1 | 2 | 3 | 4 = 1;
+  resetEmail = '';
+  resetCode = '';
+  newPassword = '';
+  confirmPassword = '';
+  resetLoading = false;
+  resetError = '';
+  timerSeconds = 120;
+  private timerInterval: any = null;
 
   private auth = inject(AuthService);
   private router = inject(Router);
@@ -298,8 +557,20 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  ngOnDestroy(): void {
+    this.stopTimer();
+  }
+
   setMode(newMode: 'login' | 'register'): void {
     this.mode = newMode;
+    this.errorMessage = '';
+    this.existingAccountDetected = false;
+  }
+
+  switchToLoginWithCurrentEmail(): void {
+    this.mode = 'login';
+    this.password = '';
+    this.existingAccountDetected = false;
     this.errorMessage = '';
   }
 
@@ -307,6 +578,7 @@ export class LoginComponent implements OnInit {
     if (!this.email || !this.password) return;
     this.loading = true;
     this.errorMessage = '';
+    this.existingAccountDetected = false;
 
     try {
       const profile = await this.auth.login(this.email.trim(), this.password);
@@ -326,12 +598,18 @@ export class LoginComponent implements OnInit {
     if (!this.email || !this.password || !this.name) return;
     this.loading = true;
     this.errorMessage = '';
+    this.existingAccountDetected = false;
 
     try {
       await this.auth.register(this.email.trim(), this.password, this.name.trim(), this.phone.trim());
       this.router.navigate(['/dashboard']);
     } catch (err: any) {
-      this.errorMessage = this.translateError(err.code || err.message);
+      const errCode = (err.code || err.message || '').toLowerCase();
+      if (errCode.includes('email-already-in-use')) {
+        this.existingAccountDetected = true;
+      } else {
+        this.errorMessage = this.translateError(err.code || err.message);
+      }
     } finally {
       this.loading = false;
     }
@@ -340,6 +618,7 @@ export class LoginComponent implements OnInit {
   async onGoogleAuth(): Promise<void> {
     this.loadingGoogle = true;
     this.errorMessage = '';
+    this.existingAccountDetected = false;
 
     try {
       const profile = await this.auth.loginWithGoogle();
@@ -349,10 +628,137 @@ export class LoginComponent implements OnInit {
         this.router.navigate(['/dashboard']);
       }
     } catch (err: any) {
-      this.errorMessage = this.translateError(err.code || err.message);
+      const errCode = (err.code || err.message || '').toLowerCase();
+      if (errCode.includes('account-exists-with-different-credential') || errCode.includes('email-already-in-use')) {
+        this.existingAccountDetected = true;
+      } else {
+        this.errorMessage = this.translateError(err.code || err.message);
+      }
     } finally {
       this.loadingGoogle = false;
     }
+  }
+
+  // --- Password Reset Modal Controls ---
+  openResetModal(): void {
+    this.resetEmail = this.email ? this.email.trim() : '';
+    this.resetCode = '';
+    this.newPassword = '';
+    this.confirmPassword = '';
+    this.resetError = '';
+    this.resetStep = 1;
+    this.showResetModal = true;
+  }
+
+  closeResetModal(): void {
+    this.stopTimer();
+    this.showResetModal = false;
+    this.resetError = '';
+  }
+
+  formatTimer(): string {
+    const m = Math.floor(this.timerSeconds / 60);
+    const s = this.timerSeconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  }
+
+  private startTimer(): void {
+    this.stopTimer();
+    this.timerSeconds = 120;
+    this.timerInterval = setInterval(() => {
+      if (this.timerSeconds > 0) {
+        this.timerSeconds--;
+      } else {
+        this.stopTimer();
+        this.resetError = 'El tiempo de 2 minutos ha expirado. Por favor solicita un nuevo código.';
+      }
+    }, 1000);
+  }
+
+  private stopTimer(): void {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+  }
+
+  async onSendResetCode(): Promise<void> {
+    if (!this.resetEmail || !this.resetEmail.includes('@')) {
+      this.resetError = 'Por favor ingresa un correo electrónico válido.';
+      return;
+    }
+    this.resetLoading = true;
+    this.resetError = '';
+
+    try {
+      await this.auth.requestPasswordResetCode(this.resetEmail);
+      this.resetStep = 2;
+      this.resetCode = '';
+      this.startTimer();
+    } catch (err: any) {
+      this.resetError = err.message || 'Error al enviar código de verificación.';
+    } finally {
+      this.resetLoading = false;
+    }
+  }
+
+  async onResendCode(): Promise<void> {
+    this.resetCode = '';
+    await this.onSendResetCode();
+  }
+
+  async onVerifyCode(): Promise<void> {
+    if (this.resetCode.trim().length !== 6) {
+      this.resetError = 'El código debe tener 6 dígitos.';
+      return;
+    }
+    if (this.timerSeconds === 0) {
+      this.resetError = 'El código ha expirado (2 minutos transcurridos). Solicita uno nuevo.';
+      return;
+    }
+
+    this.resetLoading = true;
+    this.resetError = '';
+
+    try {
+      await this.auth.verifyPasswordResetCode(this.resetEmail, this.resetCode);
+      this.stopTimer();
+      this.resetStep = 3;
+    } catch (err: any) {
+      this.resetError = err.message || 'Código incorrecto o expirado.';
+    } finally {
+      this.resetLoading = false;
+    }
+  }
+
+  async onCompletePasswordReset(): Promise<void> {
+    if (!this.newPassword || this.newPassword.length < 6) {
+      this.resetError = 'La contraseña debe tener al menos 6 caracteres.';
+      return;
+    }
+    if (this.newPassword !== this.confirmPassword) {
+      this.resetError = 'Las contraseñas no coinciden.';
+      return;
+    }
+
+    this.resetLoading = true;
+    this.resetError = '';
+
+    try {
+      await this.auth.completePasswordReset(this.resetEmail, this.resetCode, this.newPassword);
+      this.resetStep = 4;
+    } catch (err: any) {
+      this.resetError = err.message || 'Error al guardar la nueva contraseña.';
+    } finally {
+      this.resetLoading = false;
+    }
+  }
+
+  finishResetAndLogin(): void {
+    this.email = this.resetEmail;
+    this.password = '';
+    this.closeResetModal();
+    this.mode = 'login';
   }
 
   private translateError(err: string): string {
@@ -361,7 +767,7 @@ export class LoginComponent implements OnInit {
       return 'Correo o contraseña incorrectos.';
     }
     if (err.includes('auth/email-already-in-use')) {
-      return 'Este correo ya está registrado. Por favor, selecciona "Iniciar Sesión".';
+      return 'Este correo ya está registrado en BeStrong. Por favor inicia sesión.';
     }
     if (err.includes('auth/weak-password')) {
       return 'La contraseña debe tener al menos 6 caracteres.';
@@ -375,3 +781,4 @@ export class LoginComponent implements OnInit {
     return err;
   }
 }
+
