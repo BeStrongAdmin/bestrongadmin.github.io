@@ -362,7 +362,7 @@ export class AuthService {
     const now = Date.now();
     const expiresAtMs = now + 120000; // 2 minutos exactos
 
-    // 1. Guardar de inmediato en memoria y sessionStorage como respaldo 100% garantizado (0ms)
+    // 1. Guardar de inmediato en memoria, sessionStorage y localStorage como respaldo 100% garantizado (0ms)
     const localData = {
       code,
       expiresAtMs,
@@ -372,6 +372,7 @@ export class AuthService {
     this.localResetCodes.set(cleanEmail, localData);
     try {
       sessionStorage.setItem(`bestrong_reset_${cleanEmail}`, JSON.stringify(localData));
+      localStorage.setItem(`bestrong_reset_${cleanEmail}`, JSON.stringify(localData));
     } catch (_) {}
 
     console.log(`[BeStrong Security PIN] Código para ${cleanEmail}: ${code} (Expira en 2 min)`);
@@ -441,25 +442,34 @@ export class AuthService {
 
     let data: any = null;
 
-    // 1. Intentar consultar en Firestore
-    try {
-      const resetDocRef = doc(this.fb.firestore, 'password_resets', cleanEmail);
-      const snap = await getDoc(resetDocRef);
-      if (snap && snap.exists()) {
-        data = snap.data();
-      }
-    } catch (err) {
-      console.warn('Firestore getDoc falló (usando respaldo local):', err);
+    // 1. Respaldo local prioritario en memoria, sessionStorage o localStorage (respuesta instantánea en 0ms)
+    data = this.localResetCodes.get(cleanEmail);
+    if (!data) {
+      try {
+        const fromSession = sessionStorage.getItem(`bestrong_reset_${cleanEmail}`);
+        if (fromSession) data = JSON.parse(fromSession);
+      } catch (_) {}
+    }
+    if (!data) {
+      try {
+        const fromLocal = localStorage.getItem(`bestrong_reset_${cleanEmail}`);
+        if (fromLocal) data = JSON.parse(fromLocal);
+      } catch (_) {}
     }
 
-    // 2. Si no se obtuvo de Firestore, usar respaldo local
+    // 2. Si no se obtuvo de memoria/sessionStorage, consultar Firestore con timeout de 2 segundos
     if (!data) {
-      data = this.localResetCodes.get(cleanEmail);
-      if (!data) {
-        try {
-          const fromSession = sessionStorage.getItem(`bestrong_reset_${cleanEmail}`);
-          if (fromSession) data = JSON.parse(fromSession);
-        } catch (_) {}
+      try {
+        const resetDocRef = doc(this.fb.firestore, 'password_resets', cleanEmail);
+        const snap = await Promise.race([
+          getDoc(resetDocRef),
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Timeout Firestore')), 2000))
+        ]);
+        if (snap && snap.exists()) {
+          data = snap.data();
+        }
+      } catch (err) {
+        console.warn('Firestore getDoc falló (usando respaldo local):', err);
       }
     }
 
@@ -484,11 +494,12 @@ export class AuthService {
     this.localResetCodes.set(cleanEmail, data);
     try {
       sessionStorage.setItem(`bestrong_reset_${cleanEmail}`, JSON.stringify(data));
+      localStorage.setItem(`bestrong_reset_${cleanEmail}`, JSON.stringify(data));
     } catch (_) {}
 
     try {
       const resetDocRef = doc(this.fb.firestore, 'password_resets', cleanEmail);
-      await updateDoc(resetDocRef, { verified: true });
+      updateDoc(resetDocRef, { verified: true }).catch(() => {});
     } catch (_) {}
 
     return true;
@@ -508,11 +519,12 @@ export class AuthService {
     }
     try {
       sessionStorage.removeItem(`bestrong_reset_${cleanEmail}`);
+      localStorage.removeItem(`bestrong_reset_${cleanEmail}`);
     } catch (_) {}
 
     try {
       const resetDocRef = doc(this.fb.firestore, 'password_resets', cleanEmail);
-      await updateDoc(resetDocRef, { used: true });
+      updateDoc(resetDocRef, { used: true }).catch(() => {});
     } catch (_) {}
 
     // Si el usuario está autenticado, actualizamos directamente su contraseña en Firebase Auth:

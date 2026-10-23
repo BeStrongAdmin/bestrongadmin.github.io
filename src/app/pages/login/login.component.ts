@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
@@ -283,14 +283,14 @@ import { AuthService } from '../../services/auth.service';
     </div>
 
     <!-- PASSWORD RECOVERY MODAL -->
-    <div *ngIf="showResetModal" class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3">
+    <div *ngIf="showResetModal()" class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3">
       <div class="card p-4 border border-secondary border-opacity-50 shadow-2xl position-relative text-light" style="max-width: 440px; width: 100%; background-color: #0d0f15; border-radius: 1.25rem;">
         
         <!-- Close button -->
         <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" (click)="closeResetModal()" aria-label="Close"></button>
 
         <!-- STEP 1: Enter email -->
-        <div *ngIf="resetStep === 1">
+        <div *ngIf="resetStep() === 1">
           <div class="text-center mb-3">
             <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-dark border border-secondary p-3 mb-2 text-warning">
               <i class="bi bi-envelope-check fs-3"></i>
@@ -301,8 +301,8 @@ import { AuthService } from '../../services/auth.service';
             </p>
           </div>
 
-          <div *ngIf="resetError" class="alert alert-danger py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger">
-            {{ resetError }}
+          <div *ngIf="resetError()" class="alert alert-danger py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger">
+            {{ resetError() }}
           </div>
 
           <div class="mb-3">
@@ -318,7 +318,7 @@ import { AuthService } from '../../services/auth.service';
                 [(ngModel)]="resetEmail" 
                 name="resetEmail" 
                 required 
-                [disabled]="resetLoading"
+                [disabled]="resetLoading()"
               />
             </div>
           </div>
@@ -328,15 +328,15 @@ import { AuthService } from '../../services/auth.service';
             class="btn btn-success text-dark w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-2"
             style="border-radius: 12px; background-color: #00e676; border-color: #00e676;"
             (click)="onSendResetCode()"
-            [disabled]="resetLoading || !resetEmail || !resetEmail.includes('@')"
+            [disabled]="resetLoading() || !resetEmail || !resetEmail.includes('@')"
           >
-            <span *ngIf="resetLoading" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
-            <span>{{ resetLoading ? 'Enviando código...' : 'Enviar Código (2 Minutos)' }}</span>
+            <span *ngIf="resetLoading()" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
+            <span>{{ resetLoading() ? 'Enviando código...' : 'Enviar Código (2 Minutos)' }}</span>
           </button>
         </div>
 
         <!-- STEP 2: Enter 6-digit code with 2-minute countdown -->
-        <div *ngIf="resetStep === 2">
+        <div *ngIf="resetStep() === 2">
           <div class="text-center mb-3">
             <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-dark border border-secondary p-3 mb-2 text-info">
               <i class="bi bi-shield-lock-fill fs-3"></i>
@@ -348,15 +348,15 @@ import { AuthService } from '../../services/auth.service';
 
             <!-- Countdown Timer Badge -->
             <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2 border" 
-                 [ngClass]="timerSeconds <= 30 ? 'bg-danger bg-opacity-10 border-danger text-danger' : 'bg-success bg-opacity-10 border-success text-success'">
+                 [ngClass]="timerSeconds() <= 30 ? 'bg-danger bg-opacity-10 border-danger text-danger' : 'bg-success bg-opacity-10 border-success text-success'">
               <i class="bi bi-stopwatch-fill"></i>
               <span class="fw-bold" style="font-size: 1rem; letter-spacing: 1px;">{{ formatTimer() }}</span>
-              <span class="small" *ngIf="timerSeconds === 0">(Expirado)</span>
+              <span class="small" *ngIf="timerSeconds() === 0">(Expirado)</span>
             </div>
           </div>
 
-          <div *ngIf="resetError" class="alert alert-danger py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger">
-            {{ resetError }}
+          <div *ngIf="resetError()" class="alert alert-danger py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger">
+            {{ resetError() }}
           </div>
 
           <div class="mb-3 text-center">
@@ -369,7 +369,7 @@ import { AuthService } from '../../services/auth.service';
               [(ngModel)]="resetCode" 
               name="resetCode" 
               maxlength="6"
-              [disabled]="resetLoading || timerSeconds === 0"
+              [disabled]="resetLoading() || timerSeconds() === 0"
               autocomplete="one-time-code"
             />
           </div>
@@ -379,10 +379,10 @@ import { AuthService } from '../../services/auth.service';
             class="btn btn-success text-dark w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-2"
             style="border-radius: 12px; background-color: #00e676; border-color: #00e676;"
             (click)="onVerifyCode()"
-            [disabled]="resetLoading || resetCode.trim().length !== 6 || timerSeconds === 0"
+            [disabled]="resetLoading() || resetCode.trim().length !== 6 || timerSeconds() === 0"
           >
-            <span *ngIf="resetLoading" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
-            <span>{{ resetLoading ? 'Verificando...' : 'Verificar Código' }}</span>
+            <span *ngIf="resetLoading()" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
+            <span>{{ resetLoading() ? 'Verificando...' : 'Verificar Código' }}</span>
           </button>
 
           <div class="text-center mt-2">
@@ -390,7 +390,7 @@ import { AuthService } from '../../services/auth.service';
               type="button" 
               class="btn btn-link text-secondary text-decoration-none small hover-light" 
               (click)="onResendCode()"
-              [disabled]="resetLoading"
+              [disabled]="resetLoading()"
             >
               <i class="bi bi-arrow-clockwise me-1"></i> ¿No recibiste el código? Reenviar
             </button>
@@ -398,7 +398,7 @@ import { AuthService } from '../../services/auth.service';
         </div>
 
         <!-- STEP 3: Change password -->
-        <div *ngIf="resetStep === 3">
+        <div *ngIf="resetStep() === 3">
           <div class="text-center mb-3">
             <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-dark border border-secondary p-3 mb-2 text-success">
               <i class="bi bi-check2-circle fs-3"></i>
@@ -409,8 +409,8 @@ import { AuthService } from '../../services/auth.service';
             </p>
           </div>
 
-          <div *ngIf="resetError" class="alert alert-danger py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger">
-            {{ resetError }}
+          <div *ngIf="resetError()" class="alert alert-danger py-2 small mb-3 border-0 bg-danger bg-opacity-10 text-danger">
+            {{ resetError() }}
           </div>
 
           <div class="mb-3">
@@ -427,7 +427,7 @@ import { AuthService } from '../../services/auth.service';
                 name="newPassword" 
                 required 
                 minlength="6"
-                [disabled]="resetLoading"
+                [disabled]="resetLoading()"
               />
             </div>
           </div>
@@ -446,7 +446,7 @@ import { AuthService } from '../../services/auth.service';
                 name="confirmPassword" 
                 required 
                 minlength="6"
-                [disabled]="resetLoading"
+                [disabled]="resetLoading()"
               />
             </div>
           </div>
@@ -456,15 +456,15 @@ import { AuthService } from '../../services/auth.service';
             class="btn btn-success text-dark w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-2"
             style="border-radius: 12px; background-color: #00e676; border-color: #00e676;"
             (click)="onCompletePasswordReset()"
-            [disabled]="resetLoading || !newPassword || newPassword.length < 6 || newPassword !== confirmPassword"
+            [disabled]="resetLoading() || !newPassword || newPassword.length < 6 || newPassword !== confirmPassword"
           >
-            <span *ngIf="resetLoading" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
-            <span>{{ resetLoading ? 'Guardando...' : 'Guardar Nueva Contraseña' }}</span>
+            <span *ngIf="resetLoading()" class="spinner-border spinner-border-sm text-dark" role="status" aria-hidden="true"></span>
+            <span>{{ resetLoading() ? 'Guardando...' : 'Guardar Nueva Contraseña' }}</span>
           </button>
         </div>
 
         <!-- STEP 4: Success confirmation -->
-        <div *ngIf="resetStep === 4" class="text-center py-2">
+        <div *ngIf="resetStep() === 4" class="text-center py-2">
           <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 border border-success p-3 mb-3 text-success">
             <i class="bi bi-check-lg fs-1"></i>
           </div>
@@ -520,15 +520,15 @@ export class LoginComponent implements OnInit, OnDestroy {
   existingAccountDetected = false;
 
   // Password Reset Modal State
-  showResetModal = false;
-  resetStep: 1 | 2 | 3 | 4 = 1;
+  showResetModal = signal<boolean>(false);
+  resetStep = signal<1 | 2 | 3 | 4>(1);
   resetEmail = '';
   resetCode = '';
   newPassword = '';
   confirmPassword = '';
-  resetLoading = false;
-  resetError = '';
-  timerSeconds = 120;
+  resetLoading = signal<boolean>(false);
+  resetError = signal<string>('');
+  timerSeconds = signal<number>(120);
   oobCode = '';
   private timerInterval: any = null;
 
@@ -544,8 +544,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       const codeParam = params['oobCode'] || params['code'];
       if (codeParam) {
         this.oobCode = codeParam;
-        this.resetStep = 3; // Abrir directamente en el paso de nueva contraseña
-        this.showResetModal = true;
+        this.resetStep.set(3); // Abrir directamente en el paso de nueva contraseña
+        this.showResetModal.set(true);
       }
     });
 
@@ -652,32 +652,33 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.resetCode = '';
     this.newPassword = '';
     this.confirmPassword = '';
-    this.resetError = '';
-    this.resetStep = 1;
-    this.showResetModal = true;
+    this.resetError.set('');
+    this.resetStep.set(1);
+    this.showResetModal.set(true);
   }
 
   closeResetModal(): void {
     this.stopTimer();
-    this.showResetModal = false;
-    this.resetError = '';
+    this.showResetModal.set(false);
+    this.resetError.set('');
   }
 
   formatTimer(): string {
-    const m = Math.floor(this.timerSeconds / 60);
-    const s = this.timerSeconds % 60;
+    const sVal = this.timerSeconds();
+    const m = Math.floor(sVal / 60);
+    const s = sVal % 60;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   }
 
   private startTimer(): void {
     this.stopTimer();
-    this.timerSeconds = 120;
+    this.timerSeconds.set(120);
     this.timerInterval = setInterval(() => {
-      if (this.timerSeconds > 0) {
-        this.timerSeconds--;
+      if (this.timerSeconds() > 0) {
+        this.timerSeconds.update(s => s - 1);
       } else {
         this.stopTimer();
-        this.resetError = 'El tiempo de 2 minutos ha expirado. Por favor solicita un nuevo código.';
+        this.resetError.set('El tiempo de 2 minutos ha expirado. Por favor solicita un nuevo código.');
       }
     }, 1000);
   }
@@ -691,21 +692,21 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   async onSendResetCode(): Promise<void> {
     if (!this.resetEmail || !this.resetEmail.includes('@')) {
-      this.resetError = 'Por favor ingresa un correo electrónico válido.';
+      this.resetError.set('Por favor ingresa un correo electrónico válido.');
       return;
     }
-    this.resetLoading = true;
-    this.resetError = '';
+    this.resetLoading.set(true);
+    this.resetError.set('');
 
     try {
       await this.auth.requestPasswordResetCode(this.resetEmail);
-      this.resetStep = 2;
+      this.resetStep.set(2);
       this.resetCode = '';
       this.startTimer();
     } catch (err: any) {
-      this.resetError = err.message || 'Error al enviar código de verificación.';
+      this.resetError.set(err.message || 'Error al enviar código de verificación.');
     } finally {
-      this.resetLoading = false;
+      this.resetLoading.set(false);
     }
   }
 
@@ -716,40 +717,40 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   async onVerifyCode(): Promise<void> {
     if (this.resetCode.trim().length !== 6) {
-      this.resetError = 'El código debe tener 6 dígitos.';
+      this.resetError.set('El código debe tener 6 dígitos.');
       return;
     }
-    if (this.timerSeconds === 0) {
-      this.resetError = 'El código ha expirado (2 minutos transcurridos). Solicita uno nuevo.';
+    if (this.timerSeconds() === 0) {
+      this.resetError.set('El código ha expirado (2 minutos transcurridos). Solicita uno nuevo.');
       return;
     }
 
-    this.resetLoading = true;
-    this.resetError = '';
+    this.resetLoading.set(true);
+    this.resetError.set('');
 
     try {
       await this.auth.verifyPasswordResetCode(this.resetEmail, this.resetCode);
       this.stopTimer();
-      this.resetStep = 3;
+      this.resetStep.set(3);
     } catch (err: any) {
-      this.resetError = err.message || 'Código incorrecto o expirado.';
+      this.resetError.set(err.message || 'Código incorrecto o expirado.');
     } finally {
-      this.resetLoading = false;
+      this.resetLoading.set(false);
     }
   }
 
   async onCompletePasswordReset(): Promise<void> {
     if (!this.newPassword || this.newPassword.length < 6) {
-      this.resetError = 'La contraseña debe tener al menos 6 caracteres.';
+      this.resetError.set('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
     if (this.newPassword !== this.confirmPassword) {
-      this.resetError = 'Las contraseñas no coinciden.';
+      this.resetError.set('Las contraseñas no coinciden.');
       return;
     }
 
-    this.resetLoading = true;
-    this.resetError = '';
+    this.resetLoading.set(true);
+    this.resetError.set('');
 
     try {
       if (this.oobCode) {
@@ -757,11 +758,11 @@ export class LoginComponent implements OnInit, OnDestroy {
       } else {
         await this.auth.completePasswordReset(this.resetEmail, this.resetCode, this.newPassword);
       }
-      this.resetStep = 4;
+      this.resetStep.set(4);
     } catch (err: any) {
-      this.resetError = err.message || 'Error al guardar la nueva contraseña.';
+      this.resetError.set(err.message || 'Error al guardar la nueva contraseña.');
     } finally {
-      this.resetLoading = false;
+      this.resetLoading.set(false);
     }
   }
 

@@ -11,7 +11,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // ! El Superadmin se define por UID, y los administradores adicionales por la colección /admins/{uid}
+    // El Superadmin se define por UID, y los administradores adicionales por la coleccion /admins/{uid}
     function isSuperAdmin() {
       return isSignedIn() && (
         request.auth.uid == 'fCFtVKY0EQMVA9MEbINtIaRBahm1' ||
@@ -60,7 +60,7 @@ service cloud.firestore {
       ]);
     }
 
-    // 👤 Índice: un documento por username normalizado.
+    // Indice: un documento por username normalizado.
     match /usernames/{username} {
       allow read: if true;
       allow create: if isSignedIn()
@@ -69,7 +69,7 @@ service cloud.firestore {
         && (request.resource.data.uid == request.auth.uid || isAdmin())
         && request.resource.data.username == username
         && request.resource.data.keys().hasOnly(['uid', 'username', 'updatedAt']);
-      // * Permite recuperar un índice cuyo dueño ya no tiene perfil.
+      // Permite recuperar un indice cuyo dueno ya no tiene perfil.
       allow update: if isSignedIn()
         && username == username.lower()
         && validUsername(username)
@@ -83,9 +83,9 @@ service cloud.firestore {
         && (resource.data.uid == request.auth.uid || isAdmin());
     }
 
-    // 👤 Perfil y fuente única del ranking. leagueId/xp/peakXP se consultan aquí.
+    // Perfil y fuente unica del ranking. leagueId/xp/peakXP se consultan aqui.
     match /users/{userId} {
-      // ? El ranking y los perfiles públicos se pueden mostrar aun a invitados.
+      // El ranking y los perfiles publicos se pueden mostrar aun a invitados.
       allow read: if true;
       allow create: if isOwner(userId) && validUserProfileFields();
       allow create: if isAdmin() && validUserProfileFields();
@@ -107,13 +107,13 @@ service cloud.firestore {
           && (request.auth.uid == userId || request.auth.uid == followerUserId || isAdmin());
       }
 
-      // ⏱️ Historial privado del temporizador; se crea al confirmar la sincronización local.
+      // Historial privado del temporizador; se crea al confirmar la sincronizacion local.
       match /timer_sessions/{sessionId} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
     }
 
-    // 🏋️ Rutinas compartidas de comunidad.
+    // Rutinas compartidas de comunidad.
     match /routines/{routineId} {
       allow read: if true;
       allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
@@ -142,7 +142,7 @@ service cloud.firestore {
       }
     }
 
-    // 🏅 Feed histórico de medallas. No se elimina al perder XP.
+    // Feed historico de medallas. No se elimina al perder XP.
     match /achievements_posts/{achievementId} {
       allow read: if true;
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
@@ -171,7 +171,7 @@ service cloud.firestore {
       }
     }
 
-    // ⚙️ El cliente solo lee; el UID admin puede preparar estructura y publicar avisos de versión.
+    // El cliente solo lee; el UID admin puede preparar estructura y publicar avisos de version.
     match /config/app_settings {
       allow read: if true;
       allow create: if isAdmin() && request.resource.data.keys().hasOnly([
@@ -187,13 +187,19 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // 🛡️ Administradores y coaches del sistema
+    // Administradores y coaches del sistema
     match /admins/{adminId} {
       allow read: if isSignedIn();
       allow write: if isSuperAdmin() || (isSignedIn() && request.auth.uid == adminId);
     }
 
-    // 🔑 Rutinas asignadas por código con caducidad de 2 meses
+    // Solicitudes de activacion de coaches
+    match /coach_requests/{requestId} {
+      allow read: if isAdmin();
+      allow write: if isSignedIn() && request.auth.uid == requestId;
+    }
+
+    // Rutinas asignadas por codigo con caducidad de 2 meses
     match /assigned_routines/{code} {
       allow read: if true;
       allow create: if isAdmin() && request.resource.data.createdBy == request.auth.uid;
@@ -205,10 +211,9 @@ service cloud.firestore {
       );
     }
 
-    // 🔐 Solicitudes temporales de recuperación de contraseña (códigos 2 min)
-    match /password_resets/{resetId} {
+    // Solicitudes temporales de recuperacion de contrasena (codigos 2 min)
+    match /password_resets/{email} {
       allow read, write: if true;
     }
   }
 }
-
