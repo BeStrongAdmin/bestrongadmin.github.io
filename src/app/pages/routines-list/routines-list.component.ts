@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
 import { AuthService } from '../../services/auth.service';
-import { RoutineService, AssignedRoutineRecord } from '../../services/routine.service';
+import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../services/routine.service';
 
 @Component({
   selector: 'app-routines-list',
@@ -158,6 +158,16 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                   <i class="bi bi-people-fill me-1"></i> Atletas que la Usan ({{ selectedRoutine()?.trainees?.length || selectedRoutine()?.timesRedeemed || 0 }})
                 </button>
               </li>
+              <li class="nav-item">
+                <button 
+                  type="button" 
+                  class="btn btn-sm px-3 py-1 rounded-3"
+                  [ngClass]="modalTab() === 'analytics' ? 'btn-warning text-dark fw-bold' : 'btn-outline-secondary text-secondary'"
+                  (click)="modalTab.set('analytics')"
+                >
+                  <i class="bi bi-bar-chart-fill me-1"></i> Analítica Biomecánica
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -171,14 +181,17 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                     <thead class="small text-secondary border-bottom border-dark">
                       <tr>
                         <th>Ejercicio</th>
-                        <th>Patrón</th>
+                        <th>Patrón / Tipo</th>
                         <th class="text-center">Series</th>
                         <th class="text-center">Reps</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr *ngFor="let ex of day.exercises">
-                        <td class="text-light fw-medium small">{{ ex.exerciseName || ex.name_es || ex.name }}</td>
+                        <td class="text-light fw-medium small">
+                          {{ ex.exerciseName || ex.name_es || ex.name }}
+                          <span *ngIf="ex.isFinisher" class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 ms-1" style="font-size: 0.65rem;">Finisher</span>
+                        </td>
                         <td><span class="badge badge-subtle">{{ ex.movementPattern || ex.movement_pattern || 'General' }}</span></td>
                         <td class="text-center fw-bold small text-light">{{ ex.sets }}</td>
                         <td class="text-center small text-secondary">{{ ex.reps || ex.repsRange }}</td>
@@ -196,8 +209,10 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                   <thead>
                     <tr>
                       <th class="ps-3">Atleta</th>
-                      <th>Correo</th>
-                      <th class="text-end pe-3">Fecha de Canje</th>
+                      <th>Estado</th>
+                      <th class="text-center">Sesiones</th>
+                      <th class="text-center">Volumen</th>
+                      <th class="text-end pe-3">Último Entreno</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -209,12 +224,24 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                           </div>
                           <div>
                             <div class="fw-semibold text-light small">{{ t.name }}</div>
-                            <div class="small text-secondary font-monospace" style="font-size: 0.7rem;">UID: {{ t.uid }}</div>
+                            <div class="small text-secondary font-monospace" style="font-size: 0.7rem;">{{ t.email || 'UID: ' + t.uid }}</div>
                           </div>
                         </div>
                       </td>
-                      <td class="text-secondary small">{{ t.email || 'Sin correo público' }}</td>
-                      <td class="text-end pe-3 small text-secondary">{{ t.redeemedAtMs | date:'medium' }}</td>
+                      <td>
+                        <span class="badge border py-1 px-2" [ngClass]="getTraineeStatus(t).badgeClass" style="font-size: 0.72rem;">
+                          <i class="bi me-1" [ngClass]="getTraineeStatus(t).icon"></i>
+                          {{ getTraineeStatus(t).label }}
+                        </span>
+                      </td>
+                      <td class="text-center fw-bold text-light small">{{ t.workoutsCount || 0 }}</td>
+                      <td class="text-center text-secondary small">
+                        <span *ngIf="t.totalVolumeKg" class="text-info fw-semibold">{{ t.totalVolumeKg | number:'1.0-0' }} kg</span>
+                        <span *ngIf="!t.totalVolumeKg" class="opacity-50">—</span>
+                      </td>
+                      <td class="text-end pe-3 small text-secondary">
+                        {{ (t.lastWorkoutMs || t.redeemedAtMs) | date:'shortDate' }}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -224,8 +251,64 @@ import { RoutineService, AssignedRoutineRecord } from '../../services/routine.se
                 <i class="bi bi-person-check fs-1 text-secondary opacity-50 mb-2 d-block"></i>
                 <h6 class="fw-bold text-light mb-1">{{ selectedRoutine()?.timesRedeemed }} Atleta(s) han canjeado esta rutina</h6>
                 <p class="text-secondary small mb-0" style="max-width: 480px; margin: 0 auto; line-height: 1.5;">
-                  Los canjes están contabilizados. Conforme los atletas canjeen el código <strong class="text-success font-monospace">{{ selectedRoutine()?.code }}</strong> en la app móvil, verás aquí su nombre, correo y fecha exacta de activación.
+                  Los canjes están contabilizados. Conforme los atletas canjeen el código <strong class="text-success font-monospace">{{ selectedRoutine()?.code }}</strong> en la app móvil y registren sus sesiones, verás aquí su estado en tiempo real, volumen de carga y último entrenamiento.
                 </p>
+              </div>
+            </div>
+
+            <!-- TAB 3: Analítica Biomecánica de la Rutina -->
+            <div *ngIf="modalTab() === 'analytics'">
+              <div class="row g-3 mb-3">
+                <div class="col-12 col-md-6">
+                  <div class="p-3 rounded-3 border border-dark h-100" style="background-color: #12141c;">
+                    <h6 class="fw-bold text-light small mb-2 d-flex align-items-center gap-2">
+                      <i class="bi bi-pie-chart text-success"></i> Volumen Semanal por Grupo Muscular
+                    </h6>
+                    <p class="text-secondary small mb-3" style="font-size: 0.78rem;">
+                      Total de series efectivas semanales programadas en esta rutina:
+                    </p>
+
+                    <div *ngFor="let item of getRoutineMuscleSets(selectedRoutine()!)" class="mb-2">
+                      <div class="d-flex justify-content-between align-items-center small mb-1">
+                        <span class="text-light fw-medium">{{ item.muscle }}</span>
+                        <span class="text-secondary">{{ item.sets }} series ({{ item.pct }}%)</span>
+                      </div>
+                      <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.06);">
+                        <div class="progress-bar bg-success" [style.width.%]="item.pct"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <div class="p-3 rounded-3 border border-dark h-100" style="background-color: #12141c;">
+                    <h6 class="fw-bold text-light small mb-2 d-flex align-items-center gap-2">
+                      <i class="bi bi-sliders text-warning"></i> Tipología de Resistencia
+                    </h6>
+                    <p class="text-secondary small mb-3" style="font-size: 0.78rem;">
+                      Composición biomecánica del plan:
+                    </p>
+
+                    <div class="d-flex flex-column gap-2 small">
+                      <div class="p-2 rounded-2 border border-secondary border-opacity-10 d-flex justify-content-between align-items-center" style="background: rgba(255,255,255,0.02);">
+                        <span class="text-secondary"><i class="bi bi-slash-circle me-2 text-success"></i>Peso Libre (Barra / Mancuerna):</span>
+                        <strong class="text-light">{{ getRoutineEquipmentSummary(selectedRoutine()!).free }} ejerc.</strong>
+                      </div>
+                      <div class="p-2 rounded-2 border border-secondary border-opacity-10 d-flex justify-content-between align-items-center" style="background: rgba(255,255,255,0.02);">
+                        <span class="text-secondary"><i class="bi bi-arrows-expand me-2 text-primary"></i>Poleas & Cables:</span>
+                        <strong class="text-light">{{ getRoutineEquipmentSummary(selectedRoutine()!).cables }} ejerc.</strong>
+                      </div>
+                      <div class="p-2 rounded-2 border border-secondary border-opacity-10 d-flex justify-content-between align-items-center" style="background: rgba(255,255,255,0.02);">
+                        <span class="text-secondary"><i class="bi bi-gear-wide me-2 text-warning"></i>Máquinas Guiadas:</span>
+                        <strong class="text-light">{{ getRoutineEquipmentSummary(selectedRoutine()!).machines }} ejerc.</strong>
+                      </div>
+                      <div class="p-2 rounded-2 border border-secondary border-opacity-10 d-flex justify-content-between align-items-center" style="background: rgba(255,255,255,0.02);">
+                        <span class="text-secondary"><i class="bi bi-person me-2 text-info"></i>Peso Corporal:</span>
+                        <strong class="text-light">{{ getRoutineEquipmentSummary(selectedRoutine()!).bodyweight }} ejerc.</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -280,7 +363,63 @@ export class RoutinesListComponent implements OnInit {
   searchQuery = '';
   feedbackMsg = signal<string>('');
   selectedRoutine = signal<AssignedRoutineRecord | null>(null);
-  modalTab = signal<'exercises' | 'trainees'>('exercises');
+  modalTab = signal<'exercises' | 'trainees' | 'analytics'>('exercises');
+
+  getTraineeStatus(t: RoutineTrainee): { label: string; badgeClass: string; icon: string } {
+    const last = t.lastWorkoutMs || t.redeemedAtMs;
+    const diffDays = Math.floor((Date.now() - last) / (1000 * 60 * 60 * 24));
+    if (!t.lastWorkoutMs && (!t.workoutsCount || t.workoutsCount === 0)) {
+      return { label: 'Sin entrenos aún', badgeClass: 'bg-secondary bg-opacity-10 text-secondary border-secondary', icon: 'bi-hourglass' };
+    }
+    if (diffDays <= 2) {
+      return { label: 'Activo', badgeClass: 'bg-success bg-opacity-10 text-success border-success', icon: 'bi-fire' };
+    }
+    if (diffDays <= 6) {
+      return { label: `Hace ${diffDays}d`, badgeClass: 'bg-warning bg-opacity-10 text-warning border-warning', icon: 'bi-clock' };
+    }
+    return { label: 'Inactivo (+7d)', badgeClass: 'bg-danger bg-opacity-10 text-danger border-danger', icon: 'bi-exclamation-triangle' };
+  }
+
+  getRoutineMuscleSets(r: AssignedRoutineRecord): { muscle: string; sets: number; pct: number }[] {
+    const map = new Map<string, number>();
+    let totalSets = 0;
+    r.routine?.days?.forEach((d: any) => {
+      d.exercises?.forEach((ex: any) => {
+        const primary = (ex.primary_es && ex.primary_es[0]) ? ex.primary_es[0] : (ex.muscle || 'General');
+        const s = Number(ex.sets) || 3;
+        map.set(primary, (map.get(primary) || 0) + s);
+        totalSets += s;
+      });
+    });
+    if (totalSets === 0) return [];
+    return Array.from(map.entries())
+      .map(([muscle, sets]) => ({
+        muscle,
+        sets,
+        pct: Math.round((sets / totalSets) * 100)
+      }))
+      .sort((a, b) => b.sets - a.sets);
+  }
+
+  getRoutineEquipmentSummary(r: AssignedRoutineRecord): { free: number; cables: number; machines: number; bodyweight: number } {
+    let free = 0, cables = 0, machines = 0, bodyweight = 0;
+    r.routine?.days?.forEach((d: any) => {
+      d.exercises?.forEach((ex: any) => {
+        const eq = (Array.isArray(ex.equipment_es) ? ex.equipment_es.join(' ') : (ex.equipment_es || '')).toLowerCase();
+        const name = (ex.name_es || ex.name || '').toLowerCase();
+        if (eq.includes('polea') || eq.includes('cable') || name.includes('polea') || name.includes('cable')) {
+          cables++;
+        } else if (eq.includes('máquina') || eq.includes('maquina') || eq.includes('prensa') || name.includes('máquina') || name.includes('prensa')) {
+          machines++;
+        } else if (eq.includes('corporal') || eq.includes('propio') || name.includes('dominada') || name.includes('fondo') || name.includes('plancha')) {
+          bodyweight++;
+        } else {
+          free++;
+        }
+      });
+    });
+    return { free, cables, machines, bodyweight };
+  }
 
   async ngOnInit(): Promise<void> {
     await this.loadRoutines();

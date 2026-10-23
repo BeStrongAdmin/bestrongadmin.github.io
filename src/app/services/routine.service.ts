@@ -18,6 +18,50 @@ export interface RoutineTrainee {
   email?: string;
   photoURL?: string;
   redeemedAtMs: number;
+  lastWorkoutMs?: number;
+  workoutsCount?: number;
+  totalVolumeKg?: number;
+  currentStreak?: number;
+  recentPRs?: Record<string, { weight: number; reps: number; e1rm: number; exerciseName?: string; date?: string }>;
+  lastSession?: {
+    date: string;
+    dayName: string;
+    durationSeconds: number;
+    volumeKg: number;
+    exercisesCount: number;
+  };
+}
+
+export interface WorkoutLogRecord {
+  id: string;
+  athleteUid: string;
+  athleteName: string;
+  routineCode: string;
+  routineName: string;
+  dayIndex: number;
+  dayName: string;
+  date: string;
+  timestampMs: number;
+  durationSeconds: number;
+  totalVolumeKg: number;
+  totalSets: number;
+  totalReps: number;
+  muscleDistribution?: Record<string, number>;
+  exerciseTypeDistribution?: {
+    freeWeights: number;
+    cables: number;
+    machines: number;
+    bodyweight: number;
+  };
+  exercises: Array<{
+    exerciseId: string;
+    name: string;
+    weight: number;
+    reps: number;
+    sets: number;
+    e1rm?: number;
+    equipment?: string;
+  }>;
 }
 
 export interface AssignedRoutineRecord {
@@ -124,5 +168,21 @@ export class RoutineService {
   async deleteRoutine(code: string): Promise<void> {
     const docRef = doc(this.fb.firestore, COLLECTION_NAME, code);
     await deleteDoc(docRef);
+  }
+
+  async getWorkoutLogsForRoutine(code: string): Promise<WorkoutLogRecord[]> {
+    try {
+      const logsCol = collection(this.fb.firestore, COLLECTION_NAME, code, 'workout_logs');
+      const q = query(logsCol, orderBy('timestampMs', 'desc'));
+      const snap = await getDocs(q);
+      const list: WorkoutLogRecord[] = [];
+      snap.forEach(d => {
+        list.push({ id: d.id, ...d.data() } as WorkoutLogRecord);
+      });
+      return list;
+    } catch (e) {
+      console.warn('No se pudieron consultar workout_logs:', e);
+      return [];
+    }
   }
 }

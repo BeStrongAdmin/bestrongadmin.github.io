@@ -156,6 +156,147 @@ import { UserManagementService, AdminUserRecord } from '../../services/user-mana
             </div>
           </div>
 
+          <!-- SECCIÓN: ANALÍTICAS BIOMECÁNICAS Y RENDIMIENTO DE ATLETAS -->
+          <div class="row g-3 mb-4">
+            <!-- Card 1: Estado de Adherencia y Actividad -->
+            <div class="col-12 col-lg-4">
+              <div class="card h-100 p-3 p-md-4 rounded-4 border-0 panel-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="fw-bold text-light mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-activity text-success"></i> Adherencia de Alumnos
+                  </h6>
+                  <span class="badge bg-dark border border-secondary text-secondary" style="font-size: 0.7rem;">7 días</span>
+                </div>
+
+                <div class="d-flex align-items-baseline gap-2 mb-2">
+                  <span class="h2 fw-bold text-light mb-0">{{ activeRatePct() }}%</span>
+                  <span class="small text-secondary">tasa de actividad</span>
+                </div>
+
+                <!-- Multi-segment progress bar -->
+                <div class="progress mb-3" style="height: 8px; background-color: rgba(255,255,255,0.06); border-radius: 4px;">
+                  <div class="progress-bar bg-success" role="progressbar" [style.width.%]="activeRatePct()" title="Activos"></div>
+                  <div class="progress-bar bg-warning" role="progressbar" [style.width.%]="atRiskRatePct()" title="En riesgo"></div>
+                  <div class="progress-bar bg-danger" role="progressbar" [style.width.%]="inactiveRatePct()" title="Inactivos"></div>
+                </div>
+
+                <div class="d-flex flex-column gap-2 small">
+                  <div class="d-flex justify-content-between align-items-center text-secondary">
+                    <span class="d-flex align-items-center gap-1 text-light">
+                      <span class="badge rounded-circle p-1 bg-success me-1"></span> Activos (últimos 3 días)
+                    </span>
+                    <strong class="text-light">{{ activeTraineesCount() }}</strong>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center text-secondary">
+                    <span class="d-flex align-items-center gap-1 text-light">
+                      <span class="badge rounded-circle p-1 bg-warning me-1"></span> En riesgo (4 a 7 días sin entrenar)
+                    </span>
+                    <strong class="text-warning">{{ atRiskTraineesCount() }}</strong>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center text-secondary">
+                    <span class="d-flex align-items-center gap-1 text-light">
+                      <span class="badge rounded-circle p-1 bg-danger me-1"></span> Inactivos (+7 días o sin inicio)
+                    </span>
+                    <strong class="text-secondary">{{ inactiveTraineesCount() }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Volumen de Carga y Sobrecarga Progresiva -->
+            <div class="col-12 col-lg-4">
+              <div class="card h-100 p-3 p-md-4 rounded-4 border-0 panel-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="fw-bold text-light mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-speedometer2 text-primary"></i> Volumen & Sobrecarga
+                  </h6>
+                  <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.7rem;">Hipertrofia</span>
+                </div>
+
+                <div class="d-flex align-items-baseline gap-2 mb-2">
+                  <span class="h2 fw-bold text-light mb-0">{{ totalTonnageTon() }}</span>
+                  <span class="small text-secondary">Toneladas registradas</span>
+                </div>
+
+                <p class="small text-secondary mb-3" style="font-size: 0.8rem; line-height: 1.4;">
+                  Carga total levantada por tus alumnos guiados por tus rutinas (<code class="text-info">peso × reps</code>).
+                </p>
+
+                <div class="p-2 rounded-3 border border-secondary border-opacity-25 mb-2" style="background: rgba(255,255,255,0.02);">
+                  <div class="d-flex justify-content-between align-items-center small">
+                    <span class="text-secondary">Sesiones completadas:</span>
+                    <strong class="text-light">{{ totalCompletedSessions() }}</strong>
+                  </div>
+                </div>
+
+                <div class="p-2 rounded-3 border border-secondary border-opacity-25" style="background: rgba(255,255,255,0.02);">
+                  <div class="d-flex justify-content-between align-items-center small">
+                    <span class="text-secondary">Estimación 1RM activo:</span>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Fórmula Epley</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Tipología Biomecánica de Ejercicios -->
+            <div class="col-12 col-lg-4">
+              <div class="card h-100 p-3 p-md-4 rounded-4 border-0 panel-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="fw-bold text-light mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-pie-chart-fill text-warning"></i> Tipología de Ejercicios
+                  </h6>
+                  <span class="badge bg-dark border border-secondary text-secondary" style="font-size: 0.7rem;">Biomecánica</span>
+                </div>
+
+                <p class="small text-secondary mb-3" style="font-size: 0.8rem; line-height: 1.4;">
+                  Distribución del estímulo de tus rutinas creadas según el equipamiento y curva de resistencia:
+                </p>
+
+                <div class="d-flex flex-column gap-2 small">
+                  <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="text-secondary"><i class="bi bi-slash-circle me-1 text-success"></i> Peso Libre (Barras & Mancuernas)</span>
+                      <strong class="text-light">{{ equipmentDistribution().freeWeightPct }}%</strong>
+                    </div>
+                    <div class="progress" style="height: 5px; background: rgba(255,255,255,0.06);">
+                      <div class="progress-bar bg-success" [style.width.%]="equipmentDistribution().freeWeightPct"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="text-secondary"><i class="bi bi-arrows-expand me-1 text-primary"></i> Poleas & Cables (Tensión Continua)</span>
+                      <strong class="text-light">{{ equipmentDistribution().cablePct }}%</strong>
+                    </div>
+                    <div class="progress" style="height: 5px; background: rgba(255,255,255,0.06);">
+                      <div class="progress-bar bg-primary" [style.width.%]="equipmentDistribution().cablePct"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="text-secondary"><i class="bi bi-gear-wide me-1 text-warning"></i> Máquinas Guiadas (Hipertrofia Aislada)</span>
+                      <strong class="text-light">{{ equipmentDistribution().machinePct }}%</strong>
+                    </div>
+                    <div class="progress" style="height: 5px; background: rgba(255,255,255,0.06);">
+                      <div class="progress-bar bg-warning" [style.width.%]="equipmentDistribution().machinePct"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="text-secondary"><i class="bi bi-person me-1 text-info"></i> Peso Corporal / Calistenia</span>
+                      <strong class="text-light">{{ equipmentDistribution().bodyweightPct }}%</strong>
+                    </div>
+                    <div class="progress" style="height: 5px; background: rgba(255,255,255,0.06);">
+                      <div class="progress-bar bg-info" [style.width.%]="equipmentDistribution().bodyweightPct"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Superadmin Table: Rendimiento de Entrenadores -->
           <div *ngIf="auth.currentUser()?.isSuperAdmin" class="card border-0 rounded-4 panel-card mb-4 overflow-hidden">
             <div class="card-header border-0 bg-transparent px-4 py-3 d-flex justify-content-between align-items-center">
@@ -352,6 +493,22 @@ export class DashboardComponent implements OnInit {
   adminsList = signal<AdminUserRecord[]>([]);
   recentRoutines = signal<AssignedRoutineRecord[]>([]);
 
+  // Biomechanical & Trainee Progress Analytics
+  activeTraineesCount = signal<number>(0);
+  atRiskTraineesCount = signal<number>(0);
+  inactiveTraineesCount = signal<number>(0);
+  activeRatePct = signal<number>(0);
+  atRiskRatePct = signal<number>(0);
+  inactiveRatePct = signal<number>(0);
+  totalTonnageTon = signal<number>(0);
+  totalCompletedSessions = signal<number>(0);
+  equipmentDistribution = signal<{ freeWeightPct: number; cablePct: number; machinePct: number; bodyweightPct: number }>({
+    freeWeightPct: 45,
+    cablePct: 25,
+    machinePct: 20,
+    bodyweightPct: 10
+  });
+
   async ngOnInit(): Promise<void> {
     await this.loadMetrics();
   }
@@ -390,6 +547,84 @@ export class DashboardComponent implements OnInit {
           const superR = routines.filter(r => r.createdBy === uid);
           this.superAdminRoutinesCount.set(superR.length);
           this.superAdminTraineesCount.set(superR.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0));
+        }
+
+        // Cálculo de analíticas biomecánicas y de progreso
+        let totalVolKg = 0;
+        let completedSessions = 0;
+        let activeCount = 0;
+        let atRiskCount = 0;
+        let inactiveCount = 0;
+        const now = Date.now();
+        const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+        const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+        let totalExercisesCount = 0;
+        let freeWeightsCount = 0;
+        let cablesCount = 0;
+        let machinesCount = 0;
+        let bodyweightCount = 0;
+
+        routines.forEach(r => {
+          // Analítica de equipamiento en las rutinas
+          r.routine?.days?.forEach((d: any) => {
+            d.exercises?.forEach((ex: any) => {
+              totalExercisesCount++;
+              const eq = (Array.isArray(ex.equipment_es) ? ex.equipment_es.join(' ') : (ex.equipment_es || '')).toLowerCase();
+              const name = (ex.name_es || ex.name || '').toLowerCase();
+              if (eq.includes('polea') || eq.includes('cable') || name.includes('polea') || name.includes('cable')) {
+                cablesCount++;
+              } else if (eq.includes('máquina') || eq.includes('maquina') || eq.includes('prensa') || name.includes('máquina') || name.includes('prensa')) {
+                machinesCount++;
+              } else if (eq.includes('corporal') || eq.includes('propio') || name.includes('dominada') || name.includes('fondo') || name.includes('plancha')) {
+                bodyweightCount++;
+              } else {
+                freeWeightsCount++;
+              }
+            });
+          });
+
+          // Analítica de alumnos
+          r.trainees?.forEach(t => {
+            if (t.totalVolumeKg) totalVolKg += t.totalVolumeKg;
+            if (t.workoutsCount) completedSessions += t.workoutsCount;
+
+            const lastTime = t.lastWorkoutMs || t.redeemedAtMs;
+            const diff = now - lastTime;
+            if (diff <= threeDaysMs) {
+              activeCount++;
+            } else if (diff <= sevenDaysMs) {
+              atRiskCount++;
+            } else {
+              inactiveCount++;
+            }
+          });
+        });
+
+        const allTraineesCount = activeCount + atRiskCount + inactiveCount;
+        if (allTraineesCount > 0) {
+          this.activeRatePct.set(Math.round((activeCount / allTraineesCount) * 100));
+          this.atRiskRatePct.set(Math.round((atRiskCount / allTraineesCount) * 100));
+          this.inactiveRatePct.set(Math.max(0, 100 - this.activeRatePct() - this.atRiskRatePct()));
+        } else {
+          this.activeRatePct.set(100);
+          this.atRiskRatePct.set(0);
+          this.inactiveRatePct.set(0);
+        }
+
+        this.activeTraineesCount.set(activeCount);
+        this.atRiskTraineesCount.set(atRiskCount);
+        this.inactiveTraineesCount.set(inactiveCount);
+        this.totalTonnageTon.set(Math.round((totalVolKg / 1000) * 10) / 10);
+        this.totalCompletedSessions.set(completedSessions);
+
+        if (totalExercisesCount > 0) {
+          this.equipmentDistribution.set({
+            freeWeightPct: Math.round((freeWeightsCount / totalExercisesCount) * 100),
+            cablePct: Math.round((cablesCount / totalExercisesCount) * 100),
+            machinePct: Math.round((machinesCount / totalExercisesCount) * 100),
+            bodyweightPct: Math.round((bodyweightCount / totalExercisesCount) * 100),
+          });
         }
       } catch (errRoutines) {
         console.warn('Carga de rutinas no disponible o en timeout:', errRoutines);

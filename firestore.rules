@@ -209,6 +209,13 @@ service cloud.firestore {
       allow delete: if isAdmin() || (
         'expiresAtMs' in resource.data && resource.data.expiresAtMs < request.time.toMillis()
       );
+
+      // Historial de sesiones y progreso de atletas que usan esta rutina
+      match /workout_logs/{logId} {
+        allow read: if true;
+        allow create: if isSignedIn();
+        allow update, delete: if isSignedIn() && (request.auth.uid == resource.data.athleteUid || isAdmin());
+      }
     }
 
     // Solicitudes temporales de recuperacion de contrasena (codigos 2 min)
