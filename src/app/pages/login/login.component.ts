@@ -353,8 +353,14 @@ import { AuthService } from '../../services/auth.service';
                   Abre tu correo y <strong>haz clic en el enlace</strong> para definir tu nueva contraseña directamente.
                 </div>
               </div>
+              <div class="d-flex align-items-start gap-2 mb-2">
+                <i class="bi bi-exclamation-triangle-fill text-warning fs-5 flex-shrink-0"></i>
+                <div class="small text-warning" style="font-size: 0.8rem; line-height: 1.4;">
+                  <strong>¿No lo ves en tu bandeja?</strong> Revisa tu carpeta de <strong>SPAM o Correo no deseado</strong>. El remitente es <code>noreply&#64;strong-c0ab9.firebaseapp.com</code>.
+                </div>
+              </div>
               <div class="d-flex align-items-start gap-2">
-                <i class="bi bi-link-45deg text-warning fs-5 flex-shrink-0"></i>
+                <i class="bi bi-link-45deg text-info fs-5 flex-shrink-0"></i>
                 <div class="small text-secondary" style="font-size: 0.82rem; line-height: 1.4;">
                   ¿Abriste tu correo en otro dispositivo o ventana? Pega aquí el enlace o código que recibiste para continuar en esta pestaña:
                 </div>

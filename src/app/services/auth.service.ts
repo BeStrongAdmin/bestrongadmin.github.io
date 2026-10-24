@@ -362,10 +362,10 @@ export class AuthService {
     try {
       await sendPasswordResetEmail(this.fb.auth, cleanEmail, {
         url: `${origin}/login?tab=reset`,
-        handleCodeInApp: true
+        handleCodeInApp: false
       });
     } catch (err: any) {
-      console.warn('sendPasswordResetEmail con ActionCodeSettings falló, reintentando en modo estándar:', err);
+      console.warn('sendPasswordResetEmail con ActionCodeSettings falló, reintentando en modo estándar directo:', err);
       try {
         await sendPasswordResetEmail(this.fb.auth, cleanEmail);
       } catch (fallbackErr: any) {
