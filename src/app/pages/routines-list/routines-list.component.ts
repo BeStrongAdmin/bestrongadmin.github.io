@@ -93,7 +93,7 @@ import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../ser
                   <td class="small text-secondary">{{ r.createdByName || r.createdBy }}</td>
                   <td class="text-center">
                     <span class="badge badge-subtle">
-                      {{ r.timesRedeemed }} atleta(s)
+                      {{ getUniqueTraineesCount(r) }} atleta(s)
                     </span>
                   </td>
                   <td class="small">
@@ -174,7 +174,7 @@ import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../ser
                   [ngClass]="modalTab() === 'trainees' ? 'btn-success text-dark fw-bold' : 'btn-outline-secondary text-secondary'"
                   (click)="modalTab.set('trainees')"
                 >
-                  <i class="bi bi-people-fill me-1"></i> Atletas que la Usan ({{ selectedRoutine()?.trainees?.length || selectedRoutine()?.timesRedeemed || 0 }})
+                  <i class="bi bi-people-fill me-1"></i> Atletas que la Usan ({{ getUniqueTrainees(selectedRoutine()).length }})
                 </button>
               </li>
               <li class="nav-item">
@@ -223,7 +223,7 @@ import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../ser
 
             <!-- TAB 2: Atletas que la usan -->
             <div *ngIf="modalTab() === 'trainees'">
-              <div *ngIf="selectedRoutine()?.trainees && (selectedRoutine()?.trainees)!.length > 0" class="table-responsive">
+              <div *ngIf="getUniqueTrainees(selectedRoutine()).length > 0" class="table-responsive">
                 <table class="table table-hover align-middle mb-0 custom-table">
                   <thead>
                     <tr>
@@ -235,7 +235,7 @@ import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../ser
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let t of selectedRoutine()?.trainees">
+                    <tr *ngFor="let t of getUniqueTrainees(selectedRoutine())">
                       <td class="ps-3">
                         <div class="d-flex align-items-center gap-2">
                           <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center text-light fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
@@ -266,9 +266,9 @@ import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../ser
                 </table>
               </div>
 
-              <div *ngIf="!selectedRoutine()?.trainees || (selectedRoutine()?.trainees)!.length === 0" class="p-4 text-center rounded-3" style="background: rgba(255,255,255,0.02);">
+              <div *ngIf="getUniqueTrainees(selectedRoutine()).length === 0" class="p-4 text-center rounded-3" style="background: rgba(255,255,255,0.02);">
                 <i class="bi bi-person-check fs-1 text-secondary opacity-50 mb-2 d-block"></i>
-                <h6 class="fw-bold text-light mb-1">{{ selectedRoutine()?.timesRedeemed }} Atleta(s) han canjeado esta rutina</h6>
+                <h6 class="fw-bold text-light mb-1">{{ getUniqueTraineesCount(selectedRoutine()!) }} Atleta(s) han canjeado esta rutina</h6>
                 <p class="text-secondary small mb-0" style="max-width: 480px; margin: 0 auto; line-height: 1.5;">
                   Los canjes están contabilizados. Conforme los atletas canjeen el código <strong class="text-success font-monospace">{{ selectedRoutine()?.code }}</strong> en la app móvil y registren sus sesiones, verás aquí su estado en tiempo real, volumen de carga y último entrenamiento.
                 </p>
@@ -403,6 +403,50 @@ export class RoutinesListComponent implements OnInit {
   feedbackMsg = signal<string>('');
   selectedRoutine = signal<AssignedRoutineRecord | null>(null);
   modalTab = signal<'exercises' | 'trainees' | 'analytics'>('exercises');
+
+  getUniqueTrainees(r?: AssignedRoutineRecord | null): RoutineTrainee[] {
+    if (!r || !Array.isArray(r.trainees) || r.trainees.length === 0) {
+      return [];
+    }
+    const map = new Map<string, RoutineTrainee>();
+    for (const t of r.trainees) {
+      const key = (t.uid && t.uid !== 'anonimo') 
+        ? t.uid 
+        : (t.email ? t.email.toLowerCase().trim() : (t.name || 'anonimo'));
+
+      if (!map.has(key)) {
+        map.set(key, { ...t });
+      } else {
+        const prev = map.get(key)!;
+        const workoutsCount = (prev.workoutsCount || 0) + (t.workoutsCount || 0);
+        const totalVolumeKg = Math.round(((prev.totalVolumeKg || 0) + (t.totalVolumeKg || 0)) * 10) / 10;
+        const lastWorkoutMs = Math.max(prev.lastWorkoutMs || 0, t.lastWorkoutMs || 0) || undefined;
+        const redeemedAtMs = Math.min(prev.redeemedAtMs || Date.now(), t.redeemedAtMs || Date.now());
+        const lastSession = (t.lastWorkoutMs && prev.lastWorkoutMs && t.lastWorkoutMs > prev.lastWorkoutMs) 
+          ? t.lastSession 
+          : (prev.lastSession || t.lastSession);
+
+        map.set(key, {
+          ...prev,
+          name: prev.name && prev.name !== 'Atleta BeStrong' ? prev.name : t.name,
+          email: prev.email && prev.email !== 'No disponible' ? prev.email : t.email,
+          photoURL: prev.photoURL || t.photoURL,
+          redeemedAtMs,
+          lastWorkoutMs,
+          workoutsCount,
+          totalVolumeKg,
+          lastSession,
+        });
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  getUniqueTraineesCount(r: AssignedRoutineRecord): number {
+    const trainees = this.getUniqueTrainees(r);
+    if (trainees.length > 0) return trainees.length;
+    return r.timesRedeemed || 0;
+  }
 
   getTraineeStatus(t: RoutineTrainee): { label: string; badgeClass: string; icon: string } {
     const last = t.lastWorkoutMs || t.redeemedAtMs;

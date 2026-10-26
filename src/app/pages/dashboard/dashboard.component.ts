@@ -564,6 +564,7 @@ export class DashboardComponent implements OnInit {
         let cablesCount = 0;
         let machinesCount = 0;
         let bodyweightCount = 0;
+        const uniqueTraineesMap = new Map<string, any>();
 
         routines.forEach(r => {
           // Analítica de equipamiento en las rutinas
@@ -586,19 +587,35 @@ export class DashboardComponent implements OnInit {
 
           // Analítica de alumnos
           r.trainees?.forEach(t => {
-            if (t.totalVolumeKg) totalVolKg += t.totalVolumeKg;
-            if (t.workoutsCount) completedSessions += t.workoutsCount;
+            const key = (t.uid && t.uid !== 'anonimo') 
+              ? t.uid 
+              : (t.email ? t.email.toLowerCase().trim() : (t.name || 'anonimo'));
 
-            const lastTime = t.lastWorkoutMs || t.redeemedAtMs;
-            const diff = now - lastTime;
-            if (diff <= threeDaysMs) {
-              activeCount++;
-            } else if (diff <= sevenDaysMs) {
-              atRiskCount++;
+            if (!uniqueTraineesMap.has(key)) {
+              uniqueTraineesMap.set(key, { ...t });
             } else {
-              inactiveCount++;
+              const prev = uniqueTraineesMap.get(key);
+              prev.totalVolumeKg = (prev.totalVolumeKg || 0) + (t.totalVolumeKg || 0);
+              prev.workoutsCount = (prev.workoutsCount || 0) + (t.workoutsCount || 0);
+              prev.lastWorkoutMs = Math.max(prev.lastWorkoutMs || 0, t.lastWorkoutMs || 0) || undefined;
+              prev.redeemedAtMs = Math.min(prev.redeemedAtMs || now, t.redeemedAtMs || now);
             }
           });
+        });
+
+        uniqueTraineesMap.forEach(t => {
+          if (t.totalVolumeKg) totalVolKg += t.totalVolumeKg;
+          if (t.workoutsCount) completedSessions += t.workoutsCount;
+
+          const lastTime = t.lastWorkoutMs || t.redeemedAtMs;
+          const diff = now - lastTime;
+          if (diff <= threeDaysMs) {
+            activeCount++;
+          } else if (diff <= sevenDaysMs) {
+            atRiskCount++;
+          } else {
+            inactiveCount++;
+          }
         });
 
         const allTraineesCount = activeCount + atRiskCount + inactiveCount;

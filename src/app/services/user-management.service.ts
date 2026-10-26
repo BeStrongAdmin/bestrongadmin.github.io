@@ -93,7 +93,18 @@ export class UserManagementService {
         for (const adm of admins) {
           const adminRoutines = routines.filter(r => r.createdBy === adm.uid);
           adm.routinesCreatedCount = adminRoutines.length;
-          adm.traineesCount = adminRoutines.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0);
+          const uniqueAthletes = new Set<string>();
+          adminRoutines.forEach(r => {
+            r.trainees?.forEach(t => {
+              const key = (t.uid && t.uid !== 'anonimo') 
+                ? t.uid 
+                : (t.email ? t.email.toLowerCase().trim() : (t.name || 'anonimo'));
+              uniqueAthletes.add(key);
+            });
+          });
+          adm.traineesCount = uniqueAthletes.size > 0 
+            ? uniqueAthletes.size 
+            : adminRoutines.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0);
         }
       } catch (e) {
         console.warn('Error calculando métricas de rutinas:', e);
