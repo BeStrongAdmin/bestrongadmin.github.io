@@ -153,6 +153,66 @@ export class RoutineService {
     };
   }
 
+  async getRoutineByCode(code: string): Promise<AssignedRoutineRecord | null> {
+    const cleanCode = code.toUpperCase().trim();
+    const docRef = doc(this.fb.firestore, COLLECTION_NAME, cleanCode);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return null;
+    return snap.data() as AssignedRoutineRecord;
+  }
+
+  async updateAssignedRoutine(
+    code: string,
+    routineName: string,
+    routine: any,
+    isIndefinite: boolean
+  ): Promise<{ success: boolean; code: string; expiresAt: Date | null; isIndefinite: boolean }> {
+    const cleanCode = code.toUpperCase().trim();
+    const docRef = doc(this.fb.firestore, COLLECTION_NAME, cleanCode);
+    const existingSnap = await getDoc(docRef);
+    if (!existingSnap.exists()) {
+      throw new Error(`La rutina con código "${cleanCode}" no existe en el servidor.`);
+    }
+    const existingData = existingSnap.data() as AssignedRoutineRecord;
+    const now = Date.now();
+    let expiresAtMs: number | null = null;
+    if (isIndefinite) {
+      expiresAtMs = null;
+    } else {
+      expiresAtMs = (existingData.expiresAtMs && existingData.expiresAtMs > now)
+        ? existingData.expiresAtMs
+        : (now + TWO_MONTHS_MS);
+    }
+
+    const completeRoutine = {
+      ...routine,
+      name: routineName,
+      schemaVersion: 'bestrong_v2',
+      isCustomAssigned: true,
+      assignedCode: cleanCode,
+      isIndefinite,
+      updatedAt: new Date(now).toISOString(),
+    };
+
+    const updateData: Partial<AssignedRoutineRecord> = {
+      routineName,
+      daysCount: routine.days?.length || routine.config?.days || 3,
+      routine: completeRoutine,
+      isIndefinite,
+      expiresAtMs,
+      updatedAtMs: now,
+    };
+
+    await updateDoc(docRef, updateData);
+
+    return {
+      success: true,
+      code: cleanCode,
+      expiresAt: expiresAtMs ? new Date(expiresAtMs) : null,
+      isIndefinite
+    };
+  }
+
   async toggleRoutineIndefinite(code: string, makeIndefinite: boolean): Promise<{ isIndefinite: boolean; expiresAtMs: number | null }> {
     const docRef = doc(this.fb.firestore, COLLECTION_NAME, code);
     const now = Date.now();

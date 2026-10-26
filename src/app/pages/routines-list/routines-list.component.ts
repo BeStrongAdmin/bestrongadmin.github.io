@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
 import { AuthService } from '../../services/auth.service';
 import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../services/routine.service';
@@ -111,6 +111,9 @@ import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../ser
                       </button>
                       <button class="btn btn-outline-secondary" title="Ver Detalle" (click)="viewDetail(r)">
                         <i class="bi bi-eye"></i>
+                      </button>
+                      <button class="btn btn-outline-info" title="Editar Rutina Completa" (click)="editRoutine(r.code)">
+                        <i class="bi bi-pencil-square"></i>
                       </button>
                       <button class="btn btn-outline-danger rounded-end-3" title="Eliminar" (click)="deleteRoutine(r.code)">
                         <i class="bi bi-trash"></i>
@@ -329,15 +332,25 @@ import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../ser
             </div>
           </div>
           <div class="modal-footer border-top border-dark px-4 py-2 d-flex justify-content-between align-items-center">
-            <button 
-              type="button" 
-              class="btn btn-sm rounded-3 d-inline-flex align-items-center gap-2"
-              [ngClass]="selectedRoutine()?.isIndefinite ? 'btn-outline-warning' : 'btn-outline-success'"
-              (click)="toggleIndefinite(selectedRoutine()!)"
-            >
-              <i class="bi bi-infinity"></i>
-              <span>{{ selectedRoutine()?.isIndefinite ? 'Cambiar a 60 días' : 'Hacer Permanente (Indefinida)' }}</span>
-            </button>
+            <div class="d-flex align-items-center gap-2">
+              <button 
+                type="button" 
+                class="btn btn-sm rounded-3 d-inline-flex align-items-center gap-2"
+                [ngClass]="selectedRoutine()?.isIndefinite ? 'btn-outline-warning' : 'btn-outline-success'"
+                (click)="toggleIndefinite(selectedRoutine()!)"
+              >
+                <i class="bi bi-infinity"></i>
+                <span>{{ selectedRoutine()?.isIndefinite ? 'Cambiar a 60 días' : 'Hacer Permanente (Indefinida)' }}</span>
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-primary btn-sm rounded-3 d-inline-flex align-items-center gap-2 fw-semibold"
+                (click)="editRoutine(selectedRoutine()!.code)"
+              >
+                <i class="bi bi-pencil-square"></i>
+                <span>Editar Rutina Completa</span>
+              </button>
+            </div>
             <button type="button" class="btn btn-secondary btn-sm rounded-3" (click)="selectedRoutine.set(null)">Cerrar</button>
           </div>
         </div>
@@ -380,6 +393,7 @@ import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../ser
 export class RoutinesListComponent implements OnInit {
   public auth = inject(AuthService);
   private routineService = inject(RoutineService);
+  private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
 
   routines = signal<AssignedRoutineRecord[]>([]);
@@ -522,6 +536,10 @@ export class RoutinesListComponent implements OnInit {
     } catch (err: any) {
       alert(err.message || 'Error al cambiar vigencia de la rutina.');
     }
+  }
+
+  editRoutine(code: string): void {
+    this.router.navigate(['/generator'], { queryParams: { edit: code } });
   }
 
   async deleteRoutine(code: string): Promise<void> {

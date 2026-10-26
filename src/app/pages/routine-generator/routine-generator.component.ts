@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
 import { AuthService } from '../../services/auth.service';
 import { RoutineService } from '../../services/routine.service';
@@ -49,7 +50,7 @@ interface ManualExerciseForm {
 @Component({
   selector: 'app-routine-generator',
   standalone: true,
-  imports: [CommonModule, FormsModule, SidebarComponent],
+  imports: [CommonModule, FormsModule, RouterLink, SidebarComponent],
   template: `
     <div class="d-flex flex-column flex-lg-row min-vh-100" style="background-color: #07080b;">
       <!-- Responsive Sidebar -->
@@ -60,22 +61,73 @@ interface ManualExerciseForm {
         <!-- Top Action Bar -->
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
           <div>
-            <h1 class="h4 fw-bold mb-1 text-light tracking-tight">Generador de Rutinas</h1>
-            <p class="text-secondary small mb-0">Diseña rutinas con código de canje para BeStrong (Presets Biomecánicos o Personalizadas).</p>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <h1 class="h4 fw-bold mb-0 text-light tracking-tight">
+                {{ isEditMode ? 'Modificar Rutina Asignada' : 'Generador de Rutinas' }}
+              </h1>
+              <span *ngIf="isEditMode" class="badge bg-primary text-light font-monospace py-1 px-2">
+                {{ routineCode }}
+              </span>
+            </div>
+            <p class="text-secondary small mb-0">
+              {{ isEditMode 
+                ? 'Modifica ejercicios, series, repeticiones, orden y vigencia de la rutina. Los cambios se sincronizan de inmediato.' 
+                : 'Diseña rutinas con código de canje para BeStrong (Presets Biomecánicos o Personalizadas).' }}
+            </p>
           </div>
           <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 rounded-3" (click)="regenerateCode()">
+            <button 
+              *ngIf="!isEditMode" 
+              class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 rounded-3" 
+              (click)="regenerateCode()"
+            >
               <i class="bi bi-arrow-repeat"></i> Nuevo Código
+            </button>
+            <button 
+              *ngIf="isEditMode" 
+              class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2 rounded-3" 
+              (click)="cancelEdit()"
+            >
+              <i class="bi bi-plus-lg"></i> Crear Nueva
             </button>
             <button 
               class="btn btn-light btn-sm fw-bold d-flex align-items-center gap-2 px-3 rounded-3" 
               (click)="saveRoutine()" 
-              [disabled]="isSaving"
+              [disabled]="isSaving || isLoadingEdit"
             >
               <span *ngIf="isSaving" class="spinner-border spinner-border-sm"></span>
-              <i *ngIf="!isSaving" class="bi bi-cloud-arrow-up-fill text-dark"></i>
-              <span>{{ isSaving ? 'Guardando...' : 'Guardar y Publicar' }}</span>
+              <i *ngIf="!isSaving" class="bi" [ngClass]="isEditMode ? 'bi-check2-circle text-primary' : 'bi-cloud-arrow-up-fill text-dark'"></i>
+              <span>{{ isSaving ? 'Guardando...' : (isEditMode ? 'Guardar Cambios de Rutina' : 'Guardar y Publicar') }}</span>
             </button>
+          </div>
+        </div>
+
+        <!-- Edit Mode Banner -->
+        <div *ngIf="isEditMode" class="card p-3 rounded-4 border-0 mb-4" style="background: linear-gradient(135deg, rgba(13, 110, 253, 0.12), rgba(0, 230, 118, 0.08)); border: 1px solid rgba(13, 110, 253, 0.3) !important;">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle bg-primary bg-opacity-25 p-2 text-primary d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                <i class="bi bi-pencil-square fs-5"></i>
+              </div>
+              <div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-primary text-light fw-bold text-uppercase" style="font-size: 0.7rem;">Modo Edición</span>
+                  <span class="font-monospace fw-bold text-light bg-dark px-2 py-0.5 rounded-2 border border-secondary border-opacity-50" style="font-size: 0.85rem;">{{ routineCode }}</span>
+                  <span *ngIf="isIndefinite" class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">♾️ Indefinida</span>
+                </div>
+                <div class="small text-secondary mt-1">
+                  Estás modificando la rutina completa (días, ejercicios, series, repeticiones y vigencia). Los atletas que tengan este código verán reflejados los cambios.
+                </div>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+              <a routerLink="/routines" class="btn btn-outline-secondary btn-sm rounded-3">
+                <i class="bi bi-arrow-left me-1"></i> Volver a Lista
+              </a>
+              <button type="button" class="btn btn-outline-light btn-sm rounded-3" (click)="cancelEdit()">
+                <i class="bi bi-plus-lg me-1"></i> Crear Nueva Rutina
+              </button>
+            </div>
           </div>
         </div>
 
@@ -171,7 +223,10 @@ interface ManualExerciseForm {
             </div>
 
             <div class="col-6 col-md-2">
-              <label class="form-label text-secondary small fw-medium mb-1">Código de Canje</label>
+              <label class="form-label text-secondary small fw-medium mb-1">
+                Código de Canje
+                <span *ngIf="isEditMode" class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 ms-1" style="font-size: 0.65rem;">Editando</span>
+              </label>
               <input type="text" class="form-control form-control-sm font-monospace text-center fw-bold text-success rounded-3" [(ngModel)]="routineCode" readonly>
             </div>
           </div>
@@ -757,8 +812,14 @@ interface ManualExerciseForm {
 export class RoutineGeneratorComponent implements OnInit {
   private auth = inject(AuthService);
   private routineService = inject(RoutineService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
   exercisesService = inject(ExercisesService);
+
+  isEditMode = false;
+  editingCode: string | null = null;
+  isLoadingEdit = false;
 
   // Generator Mode: 'preset' = Biomechanical, 'custom' = Free Custom Routine
   generatorMode: 'preset' | 'custom' = 'preset';
@@ -803,7 +864,7 @@ export class RoutineGeneratorComponent implements OnInit {
     reps: '8-12'
   };
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.routineCode = this.routineService.generateRandomCode();
     this.availableMuscles = this.exercisesService.getMuscles();
     if (this.availableMuscles.length > 0) {
@@ -817,6 +878,142 @@ export class RoutineGeneratorComponent implements OnInit {
 
     // Initialize Custom Days Plans with "Día Personalizado X"
     this.initializeCustomDays();
+
+    // Check if editing existing routine via queryParam ?edit=CODE
+    const editCode = this.route.snapshot.queryParamMap.get('edit');
+    if (editCode) {
+      await this.loadRoutineForEdit(editCode);
+    }
+  }
+
+  async loadRoutineForEdit(code: string): Promise<void> {
+    this.isLoadingEdit = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.cdr.markForCheck();
+
+    try {
+      const routineRecord = await this.routineService.getRoutineByCode(code);
+      if (!routineRecord) {
+        this.errorMessage = `No se encontró la rutina con el código "${code}".`;
+        return;
+      }
+
+      this.isEditMode = true;
+      this.editingCode = routineRecord.code;
+      this.routineCode = routineRecord.code;
+      this.routineName = routineRecord.routineName || 'Rutina Personalizada';
+      this.isIndefinite = Boolean(routineRecord.isIndefinite || !routineRecord.expiresAtMs);
+
+      const rData = routineRecord.routine || {};
+      this.goal = rData.goal || rData.config?.goal || 'hypertrophy';
+      const days = Array.isArray(rData.days) ? rData.days : [];
+
+      if (days.length > 0) {
+        const splitMode = rData.splitMode || (rData.isCustom ? 'custom' : 'preset');
+
+        // Always populate customDays so the coach has full freedom to edit
+        this.customDaysCount = Math.max(1, Math.min(7, days.length));
+        this.customDays = [];
+
+        for (let i = 0; i < this.customDaysCount; i++) {
+          const day = days[i];
+          const dayExercises: CustomExerciseItem[] = [];
+
+          if (day && Array.isArray(day.exercises)) {
+            for (const ex of day.exercises) {
+              const exId = ex.exerciseId || ex.id;
+              // If not in catalog, register as custom
+              if (!this.exercisesService.getById(exId)) {
+                this.exercisesService.registerCustomExercise({
+                  id: exId,
+                  name_es: ex.name_es || ex.name || ex.exerciseName || exId,
+                  name_en: ex.name_en || ex.name_es || exId,
+                  movement_pattern: ex.movementPattern || 'custom',
+                  primary_muscle_es: ex.primary_es || ['General'],
+                  equipment_es: ex.equipment_es || ['Libre'],
+                  is_compound: ex.isCompound ?? false,
+                  is_isolation: ex.isIsolation ?? true,
+                });
+              }
+
+              dayExercises.push({
+                uid: 'ex_' + Math.random().toString(36).substring(2, 9),
+                exerciseId: exId,
+                sets: Number(ex.sets) || 3,
+                repsRange: String(ex.repsRange || ex.reps || '8-12'),
+                isFinisher: Boolean(ex.isFinisher)
+              });
+            }
+          }
+
+          this.customDays.push({
+            name: day?.name || `Día ${i + 1}`,
+            exercises: dayExercises
+          });
+        }
+
+        // Fill remaining up to 7
+        for (let i = this.customDays.length; i < 7; i++) {
+          this.customDays.push({
+            name: `Día Personalizado ${i + 1}`,
+            exercises: []
+          });
+        }
+
+        if (splitMode === 'preset' && days.length >= 2 && days.length <= 6) {
+          this.generatorMode = 'preset';
+          this.daysCount = days.length;
+          this.computeDayTypes();
+          this.initializeDefaultSelections();
+
+          for (let d = 0; d < this.daysCount; d++) {
+            const dayType = this.dayTypes[d] || 'torso';
+            const slots = this.getBaseSlotsForDay(d, dayType, this.daysCount);
+            const savedExercises = days[d]?.exercises || [];
+
+            for (let sIdx = 0; sIdx < slots.length; sIdx++) {
+              const slot = slots[sIdx];
+              const savedEx = savedExercises[sIdx];
+              if (savedEx) {
+                const exId = savedEx.exerciseId || savedEx.id;
+                this.selections[d][slot.id] = {
+                  exerciseId: exId,
+                  sets: Number(savedEx.sets) || slot.defaultSets,
+                  repsRange: String(savedEx.repsRange || savedEx.reps || slot.defaultReps)
+                };
+              }
+            }
+          }
+          this.updateCurrentSlots();
+        } else {
+          this.generatorMode = 'custom';
+        }
+      }
+
+      this.currentDayIndex = 0;
+      this.currentCustomDayIndex = 0;
+    } catch (err: any) {
+      this.errorMessage = err.message || 'Error al cargar la rutina para edición.';
+    } finally {
+      this.isLoadingEdit = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  cancelEdit(): void {
+    this.isEditMode = false;
+    this.editingCode = null;
+    this.routineCode = this.routineService.generateRandomCode();
+    this.routineName = 'Rutina Personalizada Pro';
+    this.isIndefinite = false;
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.router.navigate(['/generator']);
+    this.initializeDefaultSelections();
+    this.updateCurrentSlots();
+    this.initializeCustomDays();
+    this.cdr.markForCheck();
   }
 
   setGeneratorMode(mode: 'preset' | 'custom'): void {
@@ -1311,19 +1508,32 @@ export class RoutineGeneratorComponent implements OnInit {
         days: daysData
       };
 
-      const result = await this.routineService.createAssignedRoutine(
-        this.routineCode,
-        this.routineName,
-        routinePayload,
-        user.uid,
-        user.displayName || user.email || 'Admin',
-        this.isIndefinite
-      );
+      if (this.isEditMode && this.editingCode) {
+        const result = await this.routineService.updateAssignedRoutine(
+          this.editingCode,
+          this.routineName,
+          routinePayload,
+          this.isIndefinite
+        );
 
-      this.successMessage = result.isIndefinite
-        ? `¡Rutina guardada exitosamente con el código ${result.code}! Vigencia: ♾️ Indefinida (Permanente).`
-        : `¡Rutina guardada exitosamente con el código ${result.code}! Válida hasta el ${result.expiresAt?.toLocaleDateString()}.`;
-      this.regenerateCode();
+        this.successMessage = result.isIndefinite
+          ? `¡Rutina ${result.code} actualizada exitosamente! Vigencia: ♾️ Indefinida (Permanente).`
+          : `¡Rutina ${result.code} actualizada exitosamente! Válida hasta el ${result.expiresAt?.toLocaleDateString()}.`;
+      } else {
+        const result = await this.routineService.createAssignedRoutine(
+          this.routineCode,
+          this.routineName,
+          routinePayload,
+          user.uid,
+          user.displayName || user.email || 'Admin',
+          this.isIndefinite
+        );
+
+        this.successMessage = result.isIndefinite
+          ? `¡Rutina guardada exitosamente con el código ${result.code}! Vigencia: ♾️ Indefinida (Permanente).`
+          : `¡Rutina guardada exitosamente con el código ${result.code}! Válida hasta el ${result.expiresAt?.toLocaleDateString()}.`;
+        this.regenerateCode();
+      }
     } catch (err: any) {
       this.errorMessage = err.message || 'Error guardando la rutina en Firestore.';
     } finally {
