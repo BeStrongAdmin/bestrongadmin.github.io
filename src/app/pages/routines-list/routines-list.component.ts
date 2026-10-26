@@ -96,7 +96,14 @@ import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../ser
                       {{ r.timesRedeemed }} atleta(s)
                     </span>
                   </td>
-                  <td class="small text-secondary">{{ r.expiresAtMs | date:'shortDate' }}</td>
+                  <td class="small">
+                    <span *ngIf="r.isIndefinite || !r.expiresAtMs" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2">
+                      <i class="bi bi-infinity me-1"></i>Indefinida
+                    </span>
+                    <span *ngIf="!r.isIndefinite && r.expiresAtMs" class="text-secondary">
+                      {{ r.expiresAtMs | date:'shortDate' }}
+                    </span>
+                  </td>
                   <td class="text-end pe-4">
                     <div class="btn-group btn-group-sm">
                       <button class="btn btn-outline-secondary rounded-start-3" title="Copiar Código" (click)="copyCode(r.code)">
@@ -130,7 +137,16 @@ import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../ser
           <div class="modal-header border-bottom border-dark px-4 py-3">
             <div>
               <h6 class="modal-title fw-bold text-light mb-0">{{ selectedRoutine()?.routineName }}</h6>
-              <small class="text-secondary">Código: <span class="text-success font-monospace fw-bold">{{ selectedRoutine()?.code }}</span> &bull; {{ selectedRoutine()?.daysCount }} Días</small>
+              <small class="text-secondary">
+                Código: <span class="text-success font-monospace fw-bold">{{ selectedRoutine()?.code }}</span> &bull; 
+                {{ selectedRoutine()?.daysCount }} Días &bull; 
+                <span *ngIf="selectedRoutine()?.isIndefinite || !selectedRoutine()?.expiresAtMs" class="text-success fw-bold">
+                  <i class="bi bi-infinity me-1"></i>Permanente / Indefinida
+                </span>
+                <span *ngIf="!selectedRoutine()?.isIndefinite && selectedRoutine()?.expiresAtMs">
+                  Expira: {{ selectedRoutine()?.expiresAtMs | date:'mediumDate' }}
+                </span>
+              </small>
             </div>
             <button type="button" class="btn-close btn-close-white" (click)="selectedRoutine.set(null)"></button>
           </div>
@@ -312,7 +328,16 @@ import { RoutineService, AssignedRoutineRecord, RoutineTrainee } from '../../ser
               </div>
             </div>
           </div>
-          <div class="modal-footer border-top border-dark px-4 py-2">
+          <div class="modal-footer border-top border-dark px-4 py-2 d-flex justify-content-between align-items-center">
+            <button 
+              type="button" 
+              class="btn btn-sm rounded-3 d-inline-flex align-items-center gap-2"
+              [ngClass]="selectedRoutine()?.isIndefinite ? 'btn-outline-warning' : 'btn-outline-success'"
+              (click)="toggleIndefinite(selectedRoutine()!)"
+            >
+              <i class="bi bi-infinity"></i>
+              <span>{{ selectedRoutine()?.isIndefinite ? 'Cambiar a 60 días' : 'Hacer Permanente (Indefinida)' }}</span>
+            </button>
             <button type="button" class="btn btn-secondary btn-sm rounded-3" (click)="selectedRoutine.set(null)">Cerrar</button>
           </div>
         </div>
@@ -480,6 +505,23 @@ export class RoutinesListComponent implements OnInit {
     this.selectedRoutine.set(routine);
     this.modalTab.set('exercises');
     this.cdr.markForCheck();
+  }
+
+  async toggleIndefinite(r: AssignedRoutineRecord): Promise<void> {
+    const makeIndefinite = !r.isIndefinite;
+    try {
+      const res = await this.routineService.toggleRoutineIndefinite(r.code, makeIndefinite);
+      r.isIndefinite = res.isIndefinite;
+      r.expiresAtMs = res.expiresAtMs;
+      this.routines.update(list => list.map(item => item.code === r.code ? { ...item, isIndefinite: res.isIndefinite, expiresAtMs: res.expiresAtMs } : item));
+      this.onSearchChange();
+      this.feedbackMsg.set(makeIndefinite 
+        ? `Rutina ${r.code} configurada como INDEFINIDA (permanente). No se eliminará automáticamente.` 
+        : `Rutina ${r.code} actualizada con vigencia de 60 días.`);
+      this.cdr.markForCheck();
+    } catch (err: any) {
+      alert(err.message || 'Error al cambiar vigencia de la rutina.');
+    }
   }
 
   async deleteRoutine(code: string): Promise<void> {

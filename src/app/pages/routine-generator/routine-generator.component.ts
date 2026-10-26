@@ -122,26 +122,26 @@ interface ManualExerciseForm {
         <!-- Top Settings Panel -->
         <div class="card p-3 p-md-4 rounded-4 border-0 panel-card mb-4">
           <div class="row g-3">
-            <div class="col-12 col-md-5">
+            <div class="col-12 col-md-4">
               <label class="form-label text-secondary small fw-medium mb-1">Nombre de la Rutina</label>
               <input type="text" class="form-control form-control-sm rounded-3" [(ngModel)]="routineName" placeholder="Ej: Hipertrofia Fuerza Pro">
             </div>
 
             <!-- Preset Mode Days Count -->
-            <div class="col-6 col-md-3" *ngIf="generatorMode === 'preset'">
-              <label class="form-label text-secondary small fw-medium mb-1">Frecuencia Semanal</label>
+            <div class="col-6 col-md-2" *ngIf="generatorMode === 'preset'">
+              <label class="form-label text-secondary small fw-medium mb-1">Frecuencia</label>
               <select class="form-select form-select-sm rounded-3" [(ngModel)]="daysCount" (ngModelChange)="onDaysCountChange()">
-                <option [value]="2">2 Días (Full Body)</option>
-                <option [value]="3">3 Días (Torso / Pierna / FB)</option>
-                <option [value]="4">4 Días (Torso / Pierna x2)</option>
-                <option [value]="5">5 Días (Torso/Pierna/Push/Pull/Leg)</option>
-                <option [value]="6">6 Días (Push / Pull / Leg x2)</option>
+                <option [value]="2">2 Días (FB)</option>
+                <option [value]="3">3 Días (T/P/FB)</option>
+                <option [value]="4">4 Días (T/P x2)</option>
+                <option [value]="5">5 Días (PPL/TP)</option>
+                <option [value]="6">6 Días (PPL x2)</option>
               </select>
             </div>
 
             <!-- Custom Mode Days Count (1 to 7 days) -->
-            <div class="col-6 col-md-3" *ngIf="generatorMode === 'custom'">
-              <label class="form-label text-secondary small fw-medium mb-1">Días de Entrenamiento</label>
+            <div class="col-6 col-md-2" *ngIf="generatorMode === 'custom'">
+              <label class="form-label text-secondary small fw-medium mb-1">Días de Plan</label>
               <select class="form-select form-select-sm rounded-3" [(ngModel)]="customDaysCount" (ngModelChange)="onCustomDaysCountChange()">
                 <option [value]="1">1 Día</option>
                 <option [value]="2">2 Días</option>
@@ -162,7 +162,15 @@ interface ManualExerciseForm {
               </select>
             </div>
 
-            <div class="col-12 col-md-2">
+            <div class="col-6 col-md-2">
+              <label class="form-label text-secondary small fw-medium mb-1">Vigencia Servidor</label>
+              <select class="form-select form-select-sm rounded-3" [(ngModel)]="isIndefinite">
+                <option [ngValue]="false">⏱️ 60 Días</option>
+                <option [ngValue]="true">♾️ Indefinida</option>
+              </select>
+            </div>
+
+            <div class="col-6 col-md-2">
               <label class="form-label text-secondary small fw-medium mb-1">Código de Canje</label>
               <input type="text" class="form-control form-control-sm font-monospace text-center fw-bold text-success rounded-3" [(ngModel)]="routineCode" readonly>
             </div>
@@ -758,6 +766,7 @@ export class RoutineGeneratorComponent implements OnInit {
   routineName = 'Rutina Personalizada Pro';
   routineCode = '';
   goal = 'hypertrophy';
+  isIndefinite = false;
 
   // Preset Mode State
   daysCount = 4;
@@ -1307,10 +1316,13 @@ export class RoutineGeneratorComponent implements OnInit {
         this.routineName,
         routinePayload,
         user.uid,
-        user.displayName || user.email || 'Admin'
+        user.displayName || user.email || 'Admin',
+        this.isIndefinite
       );
 
-      this.successMessage = `¡Rutina guardada exitosamente con el código ${result.code}! Válida hasta el ${result.expiresAt.toLocaleDateString()}.`;
+      this.successMessage = result.isIndefinite
+        ? `¡Rutina guardada exitosamente con el código ${result.code}! Vigencia: ♾️ Indefinida (Permanente).`
+        : `¡Rutina guardada exitosamente con el código ${result.code}! Válida hasta el ${result.expiresAt?.toLocaleDateString()}.`;
       this.regenerateCode();
     } catch (err: any) {
       this.errorMessage = err.message || 'Error guardando la rutina en Firestore.';

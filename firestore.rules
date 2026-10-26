@@ -207,7 +207,10 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timesRedeemed', 'trainees'])
       );
       allow delete: if isAdmin() || (
-        'expiresAtMs' in resource.data && resource.data.expiresAtMs < request.time.toMillis()
+        resource.data.isIndefinite != true &&
+        'expiresAtMs' in resource.data &&
+        resource.data.expiresAtMs != null &&
+        resource.data.expiresAtMs < request.time.toMillis()
       );
 
       // Historial de sesiones y progreso de atletas que usan esta rutina

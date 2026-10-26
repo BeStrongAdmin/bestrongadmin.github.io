@@ -5,6 +5,7 @@ import {
   getDoc, 
   getDocs, 
   setDoc, 
+  updateDoc,
   deleteDoc, 
   query, 
   where, 
@@ -70,7 +71,8 @@ export interface AssignedRoutineRecord {
   daysCount: number;
   routine: any;
   createdAtMs: number;
-  expiresAtMs: number;
+  expiresAtMs: number | null;
+  isIndefinite?: boolean;
   createdBy: string;
   createdByName?: string;
   timesRedeemed: number;
@@ -101,8 +103,9 @@ export class RoutineService {
     routineName: string,
     routine: any,
     adminUid: string,
-    adminName?: string
-  ): Promise<{ success: boolean; code: string; expiresAt: Date }> {
+    adminName?: string,
+    isIndefinite: boolean = false
+  ): Promise<{ success: boolean; code: string; expiresAt: Date | null; isIndefinite: boolean }> {
     const cleanCode = code.toUpperCase().trim();
     if (!cleanCode || cleanCode.length < 4) {
       throw new Error('El código debe tener al menos 4 caracteres.');
@@ -115,7 +118,7 @@ export class RoutineService {
     }
 
     const now = Date.now();
-    const expiresAtMs = now + TWO_MONTHS_MS;
+    const expiresAtMs = isIndefinite ? null : (now + TWO_MONTHS_MS);
 
     const completeRoutine = {
       ...routine,
@@ -123,6 +126,7 @@ export class RoutineService {
       schemaVersion: 'bestrong_v2',
       isCustomAssigned: true,
       assignedCode: cleanCode,
+      isIndefinite,
       createdAt: new Date(now).toISOString(),
     };
 
@@ -133,6 +137,7 @@ export class RoutineService {
       routine: completeRoutine,
       createdAtMs: now,
       expiresAtMs,
+      isIndefinite,
       createdBy: adminUid,
       createdByName: adminName || 'Admin',
       timesRedeemed: 0,
@@ -143,8 +148,21 @@ export class RoutineService {
     return {
       success: true,
       code: cleanCode,
-      expiresAt: new Date(expiresAtMs)
+      expiresAt: expiresAtMs ? new Date(expiresAtMs) : null,
+      isIndefinite
     };
+  }
+
+  async toggleRoutineIndefinite(code: string, makeIndefinite: boolean): Promise<{ isIndefinite: boolean; expiresAtMs: number | null }> {
+    const docRef = doc(this.fb.firestore, COLLECTION_NAME, code);
+    const now = Date.now();
+    const expiresAtMs = makeIndefinite ? null : (now + TWO_MONTHS_MS);
+    await updateDoc(docRef, {
+      isIndefinite: makeIndefinite,
+      expiresAtMs,
+      updatedAtMs: now
+    });
+    return { isIndefinite: makeIndefinite, expiresAtMs };
   }
 
   async listRoutines(adminUid?: string, isSuperAdmin = false): Promise<AssignedRoutineRecord[]> {
