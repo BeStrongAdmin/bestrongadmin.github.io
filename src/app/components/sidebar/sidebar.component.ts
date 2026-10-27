@@ -114,6 +114,17 @@ import { AuthService } from '../../services/auth.service';
               <span>Entrenadores & Atletas</span>
             </a>
           </li>
+          <li class="nav-item">
+            <a 
+              routerLink="/system-admin" 
+              routerLinkActive="active-link" 
+              class="nav-link-custom d-flex align-items-center gap-2 px-3 py-2 rounded-3 text-secondary text-decoration-none"
+              (click)="closeMobileSidebar()"
+            >
+              <i class="bi bi-gear-wide-connected text-warning"></i>
+              <span>Panel del Sistema</span>
+            </a>
+          </li>
         </ul>
 
         <!-- SECTION 4: ENLACES EXTERNOS -->
@@ -157,17 +168,23 @@ import { AuthService } from '../../services/auth.service';
 
       <!-- User Profile & Account Actions at Bottom -->
       <div class="p-3 border-top" style="border-color: rgba(255, 255, 255, 0.06) !important; background: rgba(0, 0, 0, 0.2);">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <div class="overflow-hidden me-2">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <div class="rounded-circle overflow-hidden border border-secondary flex-shrink-0 d-flex align-items-center justify-content-center bg-dark" style="width: 38px; height: 38px;">
+            <img *ngIf="auth.currentUser()?.photoURL" [src]="auth.currentUser()?.photoURL" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+            <span *ngIf="!auth.currentUser()?.photoURL" class="text-light fw-bold small">
+              {{ (auth.currentUser()?.displayName || 'C').charAt(0).toUpperCase() }}
+            </span>
+          </div>
+          <div class="overflow-hidden flex-grow-1">
             <div class="text-light fw-semibold small text-truncate" style="font-size: 0.85rem;">
               {{ auth.currentUser()?.displayName }}
             </div>
             <div class="text-secondary small text-truncate" style="font-size: 0.72rem;">
-              {{ auth.currentUser()?.email }}
+              {{ auth.currentUser()?.username ? '@' + auth.currentUser()?.username : auth.currentUser()?.email }}
             </div>
           </div>
           <span 
-            class="badge" 
+            class="badge flex-shrink-0" 
             [ngClass]="auth.currentUser()?.isSuperAdmin ? 'bg-dark border border-warning text-warning' : (auth.currentUser()?.isAdmin ? 'bg-dark border border-success text-success' : 'bg-dark border border-warning text-warning')" 
             style="font-size: 0.65rem;"
           >
@@ -175,16 +192,30 @@ import { AuthService } from '../../services/auth.service';
           </span>
         </div>
 
-        <!-- Change password button -->
-        <button 
-          type="button" 
-          class="btn btn-outline-secondary btn-sm w-100 py-1 mb-2 d-flex align-items-center justify-content-center gap-2 rounded-3 text-secondary hover-light" 
-          style="font-size: 0.8rem; border-color: rgba(255, 255, 255, 0.12);" 
-          (click)="openChangePasswordModal()"
-        >
-          <i class="bi bi-key text-warning"></i>
-          <span>Cambiar Contraseña</span>
-        </button>
+        <!-- Action Buttons (Perfil, Clave, Cerrar Sesión) -->
+        <div class="d-flex gap-2 mb-2">
+          <button 
+            type="button" 
+            class="btn btn-outline-secondary btn-sm w-50 py-1 d-flex align-items-center justify-content-center gap-1 rounded-3 text-secondary hover-light" 
+            style="font-size: 0.78rem; border-color: rgba(255, 255, 255, 0.12);" 
+            (click)="openEditProfileModal()"
+            title="Editar nombre, username y foto"
+          >
+            <i class="bi bi-person-gear text-info"></i>
+            <span>Perfil</span>
+          </button>
+
+          <button 
+            type="button" 
+            class="btn btn-outline-secondary btn-sm w-50 py-1 d-flex align-items-center justify-content-center gap-1 rounded-3 text-secondary hover-light" 
+            style="font-size: 0.78rem; border-color: rgba(255, 255, 255, 0.12);" 
+            (click)="openChangePasswordModal()"
+            title="Cambiar contraseña de acceso"
+          >
+            <i class="bi bi-key text-warning"></i>
+            <span>Clave</span>
+          </button>
+        </div>
 
         <button class="btn btn-outline-danger btn-sm w-100 py-1 d-flex align-items-center justify-content-center gap-2 rounded-3" style="font-size: 0.8rem;" (click)="logout()">
           <i class="bi bi-box-arrow-right"></i>
@@ -329,6 +360,145 @@ import { AuthService } from '../../services/auth.service';
         </button>
       </div>
     </div>
+
+    <!-- EDIT PROFILE MODAL FOR LOGGED-IN USERS -->
+    <div *ngIf="auth.showEditProfileModal()" class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3">
+      <div class="card p-4 border border-secondary border-opacity-50 shadow-2xl position-relative text-light" style="max-width: 460px; width: 100%; background-color: #0d0f15; border-radius: 1.25rem;">
+        
+        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" (click)="closeEditProfileModal()" aria-label="Close"></button>
+
+        <div class="text-center mb-3">
+          <div class="position-relative d-inline-block mb-2">
+            <div class="rounded-circle overflow-hidden border border-2 border-secondary d-flex align-items-center justify-content-center bg-dark" style="width: 76px; height: 76px;">
+              <img *ngIf="editPhotoURL" [src]="editPhotoURL" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;" (error)="onPhotoError()">
+              <i *ngIf="!editPhotoURL" class="bi bi-person-circle fs-1 text-secondary"></i>
+            </div>
+          </div>
+          <h4 class="fw-bold mb-1 text-light">Editar Perfil</h4>
+          <p class="text-secondary small mb-0">
+            Actualiza tus datos personales visibles en BeStrong.
+          </p>
+        </div>
+
+        <!-- Feedback Alert -->
+        <div *ngIf="editProfileMsg()" class="alert alert-dismissible fade show border-0 py-2 px-3 mb-3 rounded-3 d-flex align-items-center gap-2 small"
+             [ngClass]="editProfileError() ? 'alert-danger bg-danger bg-opacity-10 text-danger' : 'alert-success bg-success bg-opacity-10 text-success'">
+          <i class="bi fs-5 flex-shrink-0" [ngClass]="editProfileError() ? 'bi-exclamation-triangle-fill' : 'bi-check-circle-fill'"></i>
+          <div>{{ editProfileMsg() }}</div>
+        </div>
+
+        <form (ngSubmit)="onSaveProfile()">
+          <!-- Nombre Completo -->
+          <div class="mb-3">
+            <label class="form-label text-secondary small fw-medium">Nombre Completo</label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-secondary">
+                <i class="bi bi-person"></i>
+              </span>
+              <input 
+                type="text" 
+                class="form-control" 
+                placeholder="Tu Nombre y Apellido"
+                [(ngModel)]="editDisplayName" 
+                name="editDisplayName" 
+                required 
+                maxlength="40"
+                [disabled]="savingProfile()"
+              />
+            </div>
+          </div>
+
+          <!-- Nombre de Usuario -->
+          <div class="mb-3">
+            <label class="form-label text-secondary small fw-medium d-flex justify-content-between">
+              <span>Nombre de Usuario (Único)</span>
+              <span *ngIf="usernameCheckStatus() === 'checking'" class="text-secondary small">
+                <span class="spinner-border spinner-border-sm me-1" style="width: 0.8rem; height: 0.8rem;"></span> Verificando...
+              </span>
+              <span *ngIf="usernameCheckStatus() === 'available'" class="text-success small fw-semibold">
+                <i class="bi bi-check-circle-fill me-1"></i> Disponible
+              </span>
+              <span *ngIf="usernameCheckStatus() === 'unavailable'" class="text-danger small fw-semibold">
+                <i class="bi bi-x-circle-fill me-1"></i> No disponible
+              </span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-secondary fw-bold">@</span>
+              <input 
+                type="text" 
+                class="form-control font-monospace" 
+                placeholder="usuario"
+                [(ngModel)]="editUsername" 
+                name="editUsername" 
+                (ngModelChange)="onUsernameChanged()"
+                maxlength="20"
+                [disabled]="savingProfile()"
+              />
+            </div>
+            <div class="text-secondary small mt-1" style="font-size: 0.74rem;">
+              Usa de 3 a 20 caracteres (minúsculas, números, punto o guion bajo).
+            </div>
+          </div>
+
+          <!-- URL de Foto de Perfil -->
+          <div class="mb-3">
+            <label class="form-label text-secondary small fw-medium">URL de Foto de Perfil (Opcional)</label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-secondary">
+                <i class="bi bi-image"></i>
+              </span>
+              <input 
+                type="url" 
+                class="form-control" 
+                placeholder="https://ejemplo.com/mi-foto.jpg"
+                [(ngModel)]="editPhotoURL" 
+                name="editPhotoURL" 
+                [disabled]="savingProfile()"
+              />
+            </div>
+            <!-- Avatares rápidos -->
+            <div class="d-flex align-items-center gap-2 mt-2">
+              <span class="text-secondary small" style="font-size: 0.72rem;">Avatares rápidos:</span>
+              <button 
+                type="button" 
+                class="btn btn-dark btn-sm p-1 rounded-circle border border-secondary"
+                *ngFor="let av of quickAvatars" 
+                (click)="editPhotoURL = av"
+                title="Elegir este avatar"
+              >
+                <img [src]="av" alt="" style="width: 22px; height: 22px; border-radius: 50%;">
+              </button>
+            </div>
+          </div>
+
+          <!-- Correo de Solo Lectura -->
+          <div class="mb-4">
+            <label class="form-label text-secondary small fw-medium">Correo Electrónico (Asociado)</label>
+            <input 
+              type="text" 
+              class="form-control form-control-sm text-secondary bg-dark border-secondary border-opacity-25" 
+              [value]="auth.currentUser()?.email" 
+              readonly 
+            />
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-secondary btn-sm w-50 py-2 rounded-3" (click)="closeEditProfileModal()" [disabled]="savingProfile()">
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              class="btn btn-light btn-sm w-50 py-2 rounded-3 fw-bold d-flex align-items-center justify-content-center gap-2"
+              [disabled]="savingProfile() || !editDisplayName.trim()"
+            >
+              <span *ngIf="savingProfile()" class="spinner-border spinner-border-sm"></span>
+              <i *ngIf="!savingProfile()" class="bi bi-check-lg text-dark"></i>
+              <span>{{ savingProfile() ? 'Guardando...' : 'Guardar Cambios' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   `,
   styles: [`
     .admin-sidebar {
@@ -409,6 +579,93 @@ export class SidebarComponent {
   changingPassword = signal<boolean>(false);
   changeError = signal<string>('');
   changeSuccess = signal<string>('');
+
+  // Formulario de edición de perfil personal
+  editDisplayName = '';
+  editUsername = '';
+  editPhotoURL = '';
+  savingProfile = signal<boolean>(false);
+  editProfileMsg = signal<string>('');
+  editProfileError = signal<boolean>(false);
+  usernameCheckStatus = signal<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
+  private usernameDebounceTimer: any;
+
+  quickAvatars = [
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
+  ];
+
+  openEditProfileModal(): void {
+    const user = this.auth.currentUser();
+    this.editDisplayName = user?.displayName || '';
+    this.editUsername = user?.username || '';
+    this.editPhotoURL = user?.photoURL || '';
+    this.editProfileMsg.set('');
+    this.editProfileError.set(false);
+    this.usernameCheckStatus.set('idle');
+    this.auth.openEditProfileModal();
+    this.closeMobileSidebar();
+  }
+
+  closeEditProfileModal(): void {
+    this.auth.closeEditProfileModal();
+    this.editProfileMsg.set('');
+    this.editProfileError.set(false);
+  }
+
+  onPhotoError(): void {
+    this.editPhotoURL = '';
+  }
+
+  onUsernameChanged(): void {
+    if (this.usernameDebounceTimer) clearTimeout(this.usernameDebounceTimer);
+    const clean = this.editUsername.trim().toLowerCase();
+    if (!clean) {
+      this.usernameCheckStatus.set('idle');
+      return;
+    }
+    if (clean === this.auth.currentUser()?.username) {
+      this.usernameCheckStatus.set('available');
+      return;
+    }
+    this.usernameCheckStatus.set('checking');
+    this.usernameDebounceTimer = setTimeout(async () => {
+      const res = await this.auth.checkUsernameAvailable(clean);
+      this.usernameCheckStatus.set(res.available ? 'available' : 'unavailable');
+    }, 400);
+  }
+
+  async onSaveProfile(): Promise<void> {
+    if (!this.editDisplayName.trim()) {
+      this.editProfileError.set(true);
+      this.editProfileMsg.set('El nombre completo es requerido.');
+      return;
+    }
+
+    this.savingProfile.set(true);
+    this.editProfileMsg.set('');
+    this.editProfileError.set(false);
+
+    try {
+      await this.auth.updateUserProfile(
+        this.editDisplayName,
+        this.editPhotoURL,
+        this.editUsername
+      );
+      this.editProfileError.set(false);
+      this.editProfileMsg.set('¡Perfil actualizado exitosamente!');
+      setTimeout(() => {
+        this.closeEditProfileModal();
+      }, 1200);
+    } catch (err: any) {
+      this.editProfileError.set(true);
+      this.editProfileMsg.set(err.message || 'Error al actualizar el perfil.');
+    } finally {
+      this.savingProfile.set(false);
+    }
+  }
 
   toggleMobileSidebar(): void {
     this.isMobileOpen.update(v => !v);

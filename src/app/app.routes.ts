@@ -6,6 +6,7 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { RoutineGeneratorComponent } from './pages/routine-generator/routine-generator.component';
 import { RoutinesListComponent } from './pages/routines-list/routines-list.component';
 import { AdminManagementComponent } from './pages/admin-management/admin-management.component';
+import { SystemAdminComponent } from './pages/system-admin/system-admin.component';
 import { adminGuard, authGuard, superAdminGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -17,5 +18,6 @@ export const routes: Routes = [
   { path: 'generator', component: RoutineGeneratorComponent, canActivate: [adminGuard] },
   { path: 'routines', component: RoutinesListComponent, canActivate: [adminGuard] },
   { path: 'admin-management', component: AdminManagementComponent, canActivate: [adminGuard, superAdminGuard] },
+  { path: 'system-admin', component: SystemAdminComponent, canActivate: [adminGuard, superAdminGuard] },
   { path: '**', redirectTo: '' }
 ];

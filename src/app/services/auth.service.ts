@@ -15,7 +15,7 @@ import {
   updatePassword,
   signOut 
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { FirebaseService } from './firebase.service';
 import { environment } from '../../environments/environment';
 
@@ -23,6 +23,8 @@ export interface AdminProfile {
   uid: string;
   email: string | null;
   displayName: string | null;
+  photoURL?: string | null;
+  username?: string | null;
   isSuperAdmin: boolean;
   isAdmin: boolean;
   requestStatus?: 'none' | 'pending' | 'approved' | 'rejected';
@@ -41,6 +43,7 @@ export class AuthService {
   public currentUser = signal<AdminProfile | null>(null);
   public isLoading = signal<boolean>(true);
   public showChangePasswordModal = signal<boolean>(false);
+  public showEditProfileModal = signal<boolean>(false);
 
   // Respaldo en memoria para códigos PIN de 2 minutos (independiente de reglas de Firestore)
   private localResetCodes = new Map<string, { code: string; expiresAtMs: number; used: boolean; verified: boolean }>();
@@ -64,6 +67,22 @@ export class AuthService {
           let isAdm = isSuper;
           let requestStatus: 'none' | 'pending' | 'approved' | 'rejected' = isSuper ? 'approved' : 'none';
           let phone = '';
+          let photoURL: string | null = user.photoURL || null;
+          let username: string | null = null;
+
+          try {
+            const userSnap = await Promise.race([
+              getDoc(doc(this.fb.firestore, 'users', user.uid)),
+              new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Timeout user profile')), FIRESTORE_TIMEOUT_MS))
+            ]);
+            if (userSnap && userSnap.exists()) {
+              const uData = userSnap.data();
+              if (uData['photoURL']) photoURL = uData['photoURL'];
+              if (uData['username']) username = uData['username'];
+            }
+          } catch (e) {
+            // Ignorar timeout de perfil
+          }
 
           if (!isSuper) {
             try {
@@ -91,6 +110,8 @@ export class AuthService {
             uid: user.uid,
             email: user.email,
             displayName: user.displayName || user.email?.split('@')[0] || 'Coach',
+            photoURL,
+            username,
             isSuperAdmin: isSuper,
             isAdmin: isAdm,
             requestStatus,
@@ -115,6 +136,126 @@ export class AuthService {
 
   closeChangePasswordModal(): void {
     this.showChangePasswordModal.set(false);
+  }
+
+  openEditProfileModal(): void {
+    this.showEditProfileModal.set(true);
+  }
+
+  closeEditProfileModal(): void {
+    this.showEditProfileModal.set(false);
+  }
+
+  async checkUsernameAvailable(username: string): Promise<{ available: boolean; message?: string }> {
+    const normalized = username.toLowerCase().trim();
+    if (normalized.length < 3) return { available: false, message: 'El username debe tener al menos 3 caracteres.' };
+    if (normalized.length > 20) return { available: false, message: 'El username no puede superar 20 caracteres.' };
+    if (!/^[a-z0-9._]+$/.test(normalized)) {
+      return { available: false, message: 'Solo letras minúsculas, números, punto o guion bajo.' };
+    }
+    if (normalized.includes('..')) return { available: false, message: 'Evita puntos consecutivos.' };
+
+    const currentUid = this.currentUser()?.uid;
+    const docRef = doc(this.fb.firestore, 'usernames', normalized);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return { available: true };
+    const ownerUid = snap.data()['uid'];
+    if (ownerUid === currentUid) return { available: true };
+    return { available: false, message: 'Este nombre de usuario ya está registrado por otra cuenta.' };
+  }
+
+  async updateUserProfile(displayName: string, photoURL?: string, username?: string): Promise<void> {
+    const authUser = this.fb.auth.currentUser;
+    if (!authUser) throw new Error('No hay sesión activa.');
+
+    const cleanName = displayName.trim().replace(/\s+/g, ' ');
+    if (cleanName.length < 2) throw new Error('El nombre debe tener al menos 2 caracteres.');
+    if (cleanName.length > 40) throw new Error('El nombre no puede superar 40 caracteres.');
+
+    let normalizedUsername: string | null = null;
+    if (username && username.trim().length > 0) {
+      normalizedUsername = username.toLowerCase().trim();
+      const check = await this.checkUsernameAvailable(normalizedUsername);
+      if (!check.available) {
+        throw new Error(check.message || 'Nombre de usuario no disponible.');
+      }
+    }
+
+    const cleanPhoto = photoURL && photoURL.trim().length > 0 ? photoURL.trim() : null;
+
+    // 1. Actualizar Firebase Auth Profile
+    await updateProfile(authUser, {
+      displayName: cleanName,
+      photoURL: cleanPhoto
+    });
+
+    // 2. Actualizar /users/{uid} en Firestore
+    const userDocRef = doc(this.fb.firestore, 'users', authUser.uid);
+    let prevUsername: string | null = null;
+    try {
+      const userSnap = await getDoc(userDocRef);
+      if (userSnap.exists()) {
+        prevUsername = userSnap.data()['usernameNormalized'] || userSnap.data()['username'] || null;
+      }
+    } catch (e) {
+      // Ignorar si no existe
+    }
+
+    const userPatch: any = {
+      uid: authUser.uid,
+      displayName: cleanName,
+      photoURL: cleanPhoto,
+      email: authUser.email
+    };
+
+    if (normalizedUsername) {
+      userPatch.username = normalizedUsername;
+      userPatch.usernameNormalized = normalizedUsername;
+      userPatch.usernameConfiguredAt = Date.now();
+
+      // Si cambió de username, borrar el anterior de /usernames
+      if (prevUsername && prevUsername !== normalizedUsername) {
+        try {
+          await deleteDoc(doc(this.fb.firestore, 'usernames', prevUsername));
+        } catch (e) {
+          console.warn('Error borrando username previo:', e);
+        }
+      }
+
+      // Registrar nuevo en /usernames
+      await setDoc(doc(this.fb.firestore, 'usernames', normalizedUsername), {
+        uid: authUser.uid,
+        username: normalizedUsername,
+        updatedAt: Date.now()
+      }, { merge: true });
+    }
+
+    await setDoc(userDocRef, userPatch, { merge: true });
+
+    // 3. Actualizar /admins/{uid} si existe
+    try {
+      const adminDocRef = doc(this.fb.firestore, 'admins', authUser.uid);
+      const adminSnap = await getDoc(adminDocRef);
+      if (adminSnap.exists()) {
+        await updateDoc(adminDocRef, {
+          name: cleanName,
+          photoURL: cleanPhoto
+        });
+      }
+    } catch (e) {
+      // No bloquear si la colección admins no aplica
+    }
+
+    // 4. Actualizar signal de currentUser en tiempo real
+    this.currentUser.update(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        displayName: cleanName,
+        photoURL: cleanPhoto,
+        username: normalizedUsername || prev.username
+      };
+    });
   }
 
   async login(email: string, pass: string): Promise<AdminProfile> {
