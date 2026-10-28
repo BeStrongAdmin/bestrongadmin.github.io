@@ -279,6 +279,26 @@ export class SystemAdminService {
       await usernameBatch.commit();
     }
 
+    // 4. Limpieza de alumnos anónimos o sin cuenta registrada en assigned_routines
+    const assignedRoutinesSnapshot = await getDocs(collection(this.fb.firestore, 'assigned_routines'));
+    for (const rDoc of assignedRoutinesSnapshot.docs) {
+      const rData = rDoc.data();
+      const rawTrainees: any[] = Array.isArray(rData['trainees']) ? rData['trainees'] : [];
+      const validTrainees = rawTrainees.filter(t =>
+        t && t.uid && t.uid !== 'anonimo' && t.email && t.email !== 'No disponible'
+      );
+
+      if (validTrainees.length !== rawTrainees.length || rData['timesRedeemed'] !== validTrainees.length) {
+        await setDoc(rDoc.ref, {
+          trainees: validTrainees,
+          timesRedeemed: validTrainees.length,
+          lastCleanedAtMs: Date.now()
+        }, { merge: true });
+        repaired++;
+        deleted += (rawTrainees.length - validTrainees.length);
+      }
+    }
+
     return { deleted, repaired, profilesRepaired, fieldsRemoved };
   }
 

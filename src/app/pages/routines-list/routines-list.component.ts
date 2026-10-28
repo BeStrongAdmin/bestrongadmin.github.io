@@ -410,9 +410,10 @@ export class RoutinesListComponent implements OnInit {
     }
     const map = new Map<string, RoutineTrainee>();
     for (const t of r.trainees) {
-      const key = (t.uid && t.uid !== 'anonimo') 
-        ? t.uid 
-        : (t.email ? t.email.toLowerCase().trim() : (t.name || 'anonimo'));
+      if (!t.uid || t.uid === 'anonimo' || !t.email || t.email === 'No disponible') {
+        continue;
+      }
+      const key = t.uid;
 
       if (!map.has(key)) {
         map.set(key, { ...t });
@@ -443,9 +444,7 @@ export class RoutinesListComponent implements OnInit {
   }
 
   getUniqueTraineesCount(r: AssignedRoutineRecord): number {
-    const trainees = this.getUniqueTrainees(r);
-    if (trainees.length > 0) return trainees.length;
-    return r.timesRedeemed || 0;
+    return this.getUniqueTrainees(r).length;
   }
 
   getTraineeStatus(t: RoutineTrainee): { label: string; badgeClass: string; icon: string } {

@@ -534,8 +534,20 @@ export class DashboardComponent implements OnInit {
           this.routineService.listRoutines(uid, isSuper),
           new Promise<AssignedRoutineRecord[]>((_, reject) => setTimeout(() => reject(new Error('Timeout rutinas')), 3500))
         ]);
+        const countValidTrainees = (list: AssignedRoutineRecord[]) => {
+          const map = new Set<string>();
+          list.forEach(r => {
+            r.trainees?.forEach(t => {
+              if (t.uid && t.uid !== 'anonimo' && t.email && t.email !== 'No disponible') {
+                map.add(t.uid);
+              }
+            });
+          });
+          return map.size;
+        };
+
         this.totalRoutines.set(routines.length);
-        this.totalTrainees.set(routines.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0));
+        this.totalTrainees.set(countValidTrainees(routines));
         this.recentRoutines.set(routines.slice(0, 5));
 
         if (uid) {
@@ -546,7 +558,7 @@ export class DashboardComponent implements OnInit {
         if (isSuper && uid) {
           const superR = routines.filter(r => r.createdBy === uid);
           this.superAdminRoutinesCount.set(superR.length);
-          this.superAdminTraineesCount.set(superR.reduce((acc, r) => acc + (r.timesRedeemed || 0), 0));
+          this.superAdminTraineesCount.set(countValidTrainees(superR));
         }
 
         // Cálculo de analíticas biomecánicas y de progreso
@@ -585,11 +597,12 @@ export class DashboardComponent implements OnInit {
             });
           });
 
-          // Analítica de alumnos
+          // Analítica de alumnos con cuenta registrada activa (ignorar anónimos)
           r.trainees?.forEach(t => {
-            const key = (t.uid && t.uid !== 'anonimo') 
-              ? t.uid 
-              : (t.email ? t.email.toLowerCase().trim() : (t.name || 'anonimo'));
+            if (!t.uid || t.uid === 'anonimo' || !t.email || t.email === 'No disponible') {
+              return;
+            }
+            const key = t.uid;
 
             if (!uniqueTraineesMap.has(key)) {
               uniqueTraineesMap.set(key, { ...t });
