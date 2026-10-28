@@ -204,6 +204,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAdmin() && request.resource.data.createdBy == request.auth.uid;
       allow update: if isAdmin() || (
+        isSignedIn() &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timesRedeemed', 'trainees'])
       );
       allow delete: if isAdmin() || (
